@@ -25,6 +25,7 @@ type
   private
     class function ResolvePath(const ABaseDir, ARelativePath: string): string;
     class function IsPathWithinTree(const APath, ATreeRoot: string): Boolean;
+    class procedure InheritProfiles(const AParentConfig, AChildConfig: TProjectConfig);
     class procedure DiscoverModulesRecursive(
       const AAggregatorConfig: TProjectConfig;
       const AAggregatorDir: string;
@@ -67,6 +68,29 @@ begin
 
   { Check if path starts with root }
   Result := Pos(NormalizedRoot, NormalizedPath) = 1;
+end;
+
+class procedure TModuleDiscoverer.InheritProfiles(
+  const AParentConfig, AChildConfig: TProjectConfig);
+var
+  I, J: Integer;
+  ParentProfile, ChildProfile: TProfile;
+begin
+  for I := 0 to AParentConfig.Profiles.Count - 1 do
+  begin
+    ParentProfile := AParentConfig.Profiles[I];
+    { Only inherit if child does not already define a profile with this id }
+    if AChildConfig.Profiles.FindById(ParentProfile.Id) = nil then
+    begin
+      ChildProfile := TProfile.Create;
+      ChildProfile.Id := ParentProfile.Id;
+      for J := 0 to ParentProfile.Defines.Count - 1 do
+        ChildProfile.Defines.Add(ParentProfile.Defines[J]);
+      for J := 0 to ParentProfile.CompilerOptions.Count - 1 do
+        ChildProfile.CompilerOptions.Add(ParentProfile.CompilerOptions[J]);
+      AChildConfig.Profiles.Add(ChildProfile);
+    end;
+  end;
 end;
 
 class procedure TModuleDiscoverer.DiscoverModulesRecursive(
@@ -123,6 +147,9 @@ begin
         'Module "%s" version "%s" does not match aggregator version "%s". ' +
         'Remove <version> from module to inherit from aggregator, or set it to "%s".',
         [ModuleConfig.Name, ModuleConfig.Version, AInheritedVersion, AInheritedVersion]);
+
+    { Profile inheritance: inherit parent profiles not already defined in child }
+    InheritProfiles(AAggregatorConfig, ModuleConfig);
 
     { Create module info }
     ModuleInfo := TModuleInfo.Create;

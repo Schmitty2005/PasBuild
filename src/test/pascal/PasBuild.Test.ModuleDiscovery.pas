@@ -95,6 +95,15 @@ type
     procedure TestVersionMismatchRaisesError;
   end;
 
+  { Tests for profile inheritance in multi-module projects }
+  TTestProfileInheritance = class(TTestCase)
+  private
+    function GetFixturePath(const AFileName: string): string;
+  published
+    procedure TestProfileInheritedFromAggregator;
+    procedure TestProfileOverriddenByChild;
+  end;
+
   { Tests for CLI module selection }
   TTestCLIModuleSelection = class(TTestCase)
   published
@@ -1172,6 +1181,72 @@ begin
     Registry.Free;
 end;
 
+{ TTestProfileInheritance }
+
+function TTestProfileInheritance.GetFixturePath(const AFileName: string): string;
+begin
+  Result := 'fixtures/multi-module/' + AFileName;
+end;
+
+procedure TTestProfileInheritance.TestProfileInheritedFromAggregator;
+var
+  Registry: TModuleRegistry;
+  Module: TModuleInfo;
+  Profile: TProfile;
+begin
+  { Child module without profiles should inherit aggregator's profiles }
+  Registry := TModuleDiscoverer.DiscoverModules(
+    GetFixturePath('profile-inherit/project.xml'));
+  try
+    AssertEquals('Registry should have 1 module', 1, Registry.Modules.Count);
+    Module := TModuleInfo(Registry.Modules[0]);
+    AssertEquals('Module name should match', 'child-lib', Module.Name);
+
+    { Child should have inherited both profiles from aggregator }
+    AssertTrue('Child should have profiles',
+      Module.Config.Profiles.Count >= 2);
+
+    Profile := Module.Config.Profiles.FindById('unix');
+    AssertNotNull('Child should have inherited unix profile', Profile);
+    AssertTrue('unix profile should have X11 define',
+      Profile.Defines.IndexOf('X11') >= 0);
+    AssertTrue('unix profile should have -dUnix option',
+      Profile.CompilerOptions.IndexOf('-dUnix') >= 0);
+
+    Profile := Module.Config.Profiles.FindById('release');
+    AssertNotNull('Child should have inherited release profile', Profile);
+    AssertTrue('release profile should have RELEASE define',
+      Profile.Defines.IndexOf('RELEASE') >= 0);
+  finally
+    Registry.Free;
+  end;
+end;
+
+procedure TTestProfileInheritance.TestProfileOverriddenByChild;
+var
+  Registry: TModuleRegistry;
+  Module: TModuleInfo;
+  Profile: TProfile;
+begin
+  { Child module with same profile id should keep its own version }
+  Registry := TModuleDiscoverer.DiscoverModules(
+    GetFixturePath('profile-inherit-override/project.xml'));
+  try
+    AssertEquals('Registry should have 1 module', 1, Registry.Modules.Count);
+    Module := TModuleInfo(Registry.Modules[0]);
+
+    Profile := Module.Config.Profiles.FindById('unix');
+    AssertNotNull('Child should have unix profile', Profile);
+    { Child defines Wayland, not X11 — child's version should win }
+    AssertTrue('unix profile should have child define Wayland',
+      Profile.Defines.IndexOf('Wayland') >= 0);
+    AssertTrue('unix profile should NOT have parent define X11',
+      Profile.Defines.IndexOf('X11') < 0);
+  finally
+    Registry.Free;
+  end;
+end;
+
 { TTestCLIModuleSelection }
 
 procedure TTestCLIModuleSelection.TestCommandLineArgsHasModuleField;
@@ -1459,6 +1534,7 @@ initialization
   RegisterTest(TTestArtifactResolution);
   RegisterTest(TTestReactorBuild);
   RegisterTest(TTestVersionInheritance);
+  RegisterTest(TTestProfileInheritance);
   RegisterTest(TTestCLIModuleSelection);
   RegisterTest(TTestFilterBuildOrder);
 

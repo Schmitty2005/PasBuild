@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <name>TestAggregatorProfileInherit</name>
+  <version>1.0.0</version>
+
+  <build>
+    <packaging>pom</packaging>
+  </build>
+
+  <modules>
+    <module>child-lib</module>
+  </modules>
+
+  <profiles>
+    <profile>
+      <id>unix</id>
+      <defines>
+        <define>X11</define>
+      </defines>
+      <compilerOptions>
+        <option>-dUnix</option>
+      </compilerOptions>
+    </profile>
+    <profile>
+      <id>release</id>
+      <defines>
+        <define>RELEASE</define>
+      </defines>
+    </profile>
+  </profiles>
+</project>

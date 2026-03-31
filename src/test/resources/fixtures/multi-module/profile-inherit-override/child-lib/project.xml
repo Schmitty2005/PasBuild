@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <name>child-lib</name>
+
+  <build>
+    <packaging>library</packaging>
+  </build>
+
+  <profiles>
+    <profile>
+      <id>unix</id>
+      <defines>
+        <define>Wayland</define>
+      </defines>
+    </profile>
+  </profiles>
+</project>
