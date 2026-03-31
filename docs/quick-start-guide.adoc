@@ -441,6 +441,43 @@ pasbuild compile -p base,debug        # Base + debug symbols
 pasbuild compile -p base,debug,logging # Base + debug + logging
 ----
 
+=== Profiles in Multi-Module Projects
+
+In <<_multi_module_projects,multi-module projects>>, profiles defined in the aggregator (parent) `project.xml` are automatically inherited by all child modules. This allows you to define shared profiles once at the top level rather than duplicating them in every module.
+
+If a child module defines a profile with the same `<id>` as one in the parent, the child's version takes precedence — the parent profile is not merged or combined.
+
+**Example:**
+
+Aggregator `project.xml`:
+
+[source,xml]
+----
+<project>
+  <name>my-app</name>
+  <version>1.0.0</version>
+  <build><packaging>pom</packaging></build>
+
+  <modules>
+    <module>framework</module>
+    <module>app</module>
+  </modules>
+
+  <profiles>
+    <profile>
+      <id>unix</id>
+      <defines>
+        <define>X11</define>
+      </defines>
+    </profile>
+  </profiles>
+</project>
+----
+
+Both `framework` and `app` modules will have the `unix` profile available, without needing to redeclare it. Running `pasbuild compile -p unix` will apply the `-dX11` define to all child modules.
+
+If `framework/project.xml` also defines a `unix` profile, that module-level definition replaces the inherited one entirely for that module.
+
 === Compiler Options Order
 
 PasBuild applies compiler options in a specific additive order, allowing you to set defaults and override them as needed:
@@ -477,43 +514,6 @@ fpc -Mobjfpc -O1 -vh -g -O- ...
 ----
 
 The `-O-` flag overrides the default `-O1` because FPC applies the last occurrence of conflicting flags.
-
-=== Profiles in Multi-Module Projects
-
-In multi-module projects, profiles defined in the aggregator (parent) `project.xml` are automatically inherited by all child modules. This allows you to define shared profiles once at the top level rather than duplicating them in every module.
-
-If a child module defines a profile with the same `<id>` as one in the parent, the child's version takes precedence — the parent profile is not merged or combined.
-
-**Example:**
-
-Aggregator `project.xml`:
-
-[source,xml]
-----
-<project>
-  <name>my-app</name>
-  <version>1.0.0</version>
-  <build><packaging>pom</packaging></build>
-
-  <modules>
-    <module>framework</module>
-    <module>app</module>
-  </modules>
-
-  <profiles>
-    <profile>
-      <id>unix</id>
-      <defines>
-        <define>X11</define>
-      </defines>
-    </profile>
-  </profiles>
-</project>
-----
-
-Both `framework` and `app` modules will have the `unix` profile available, without needing to redeclare it. Running `pasbuild compile -p unix` will apply the `-dX11` define to all child modules.
-
-If `framework/project.xml` also defines a `unix` profile, that module-level definition replaces the inherited one entirely for that module.
 
 === Using Conditional Compilation
 
