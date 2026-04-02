@@ -323,7 +323,7 @@ var
   ActiveDefines, UnitPathsList, IncludePathsList: TStringList;
   I: Integer;
   Arr: TJSONArray;
-  DepObj, OutputObj, TestObj: TJSONObject;
+  DepObj, OutputObj, TestObj, DirsObj: TJSONObject;
   OutputDir: string;
 begin
   ActiveDefines := CollectActiveDefines(AConfig);
@@ -383,6 +383,14 @@ begin
     TestObj.Add('testSource', AConfig.TestConfig.TestSource);
     AResult.Add('test', TestObj);
   end;
+
+  { Directories section — resolved conventional directory locations }
+  DirsObj := TJSONObject.Create;
+  DirsObj.Add('source', AConfig.BuildConfig.SourceDirectory);
+  DirsObj.Add('testSource', AConfig.TestConfig.SourceDirectory);
+  DirsObj.Add('resources', AConfig.ResourcesConfig.Directory);
+  DirsObj.Add('testResources', AConfig.TestResourcesConfig.Directory);
+  AResult.Add('directories', DirsObj);
 
   { Output section }
   OutputObj := TJSONObject.Create;

@@ -39,6 +39,8 @@ type
     procedure TestSingleModuleWithExternalDeps;
     procedure TestSingleModuleOutputSection;
     procedure TestSingleModuleTestSection;
+    procedure TestSingleModuleDirectoriesSection;
+    procedure TestSingleModuleDirectoriesCustom;
     procedure TestExecuteReturnsZero;
   end;
 
@@ -397,6 +399,76 @@ begin
         TestObj := JSON.Objects['test'];
         AssertEquals('Test framework', 'fpcunit', TestObj.Strings['framework']);
         AssertEquals('Test source', 'TestRunner.pas', TestObj.Strings['testSource']);
+      finally
+        JSON.Free;
+      end;
+    finally
+      Command.Free;
+    end;
+  finally
+    Config.Free;
+  end;
+end;
+
+procedure TTestResolveCommandSingle.TestSingleModuleDirectoriesSection;
+var
+  Config: TProjectConfig;
+  Command: TTestableResolveCommand;
+  JSON: TJSONObject;
+  DirsObj: TJSONObject;
+begin
+  Config := TProjectConfig.Create;
+  try
+    Config.Name := 'test-app';
+    Config.BuildConfig.ProjectType := ptApplication;
+
+    Command := TTestableResolveCommand.Create(Config, nil);
+    try
+      JSON := Command.BuildJSON;
+      try
+        AssertTrue('Should have directories section', JSON.IndexOfName('directories') >= 0);
+        DirsObj := JSON.Objects['directories'];
+        AssertEquals('Default source', 'src/main/pascal', DirsObj.Strings['source']);
+        AssertEquals('Default testSource', 'src/test/pascal', DirsObj.Strings['testSource']);
+        AssertEquals('Default resources', 'src/main/resources', DirsObj.Strings['resources']);
+        AssertEquals('Default testResources', 'src/test/resources', DirsObj.Strings['testResources']);
+      finally
+        JSON.Free;
+      end;
+    finally
+      Command.Free;
+    end;
+  finally
+    Config.Free;
+  end;
+end;
+
+procedure TTestResolveCommandSingle.TestSingleModuleDirectoriesCustom;
+var
+  Config: TProjectConfig;
+  Command: TTestableResolveCommand;
+  JSON: TJSONObject;
+  DirsObj: TJSONObject;
+begin
+  Config := TProjectConfig.Create;
+  try
+    Config.Name := 'custom-dirs';
+    Config.BuildConfig.ProjectType := ptApplication;
+    Config.BuildConfig.SourceDirectory := '.';
+    Config.TestConfig.SourceDirectory := 'test';
+    Config.ResourcesConfig.Directory := 'res';
+    Config.TestResourcesConfig.Directory := 'test-res';
+
+    Command := TTestableResolveCommand.Create(Config, nil);
+    try
+      JSON := Command.BuildJSON;
+      try
+        AssertTrue('Should have directories section', JSON.IndexOfName('directories') >= 0);
+        DirsObj := JSON.Objects['directories'];
+        AssertEquals('Custom source', '.', DirsObj.Strings['source']);
+        AssertEquals('Custom testSource', 'test', DirsObj.Strings['testSource']);
+        AssertEquals('Custom resources', 'res', DirsObj.Strings['resources']);
+        AssertEquals('Custom testResources', 'test-res', DirsObj.Strings['testResources']);
       finally
         JSON.Free;
       end;
