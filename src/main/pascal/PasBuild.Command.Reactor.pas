@@ -23,6 +23,7 @@ uses
   PasBuild.Command.Test,
   PasBuild.Command.Package,
   PasBuild.Command.Install,
+  PasBuild.Dependencies,
   PasBuild.Utils;
 
 type
@@ -143,6 +144,7 @@ var
   ModuleConfig: TProjectConfig;
   ModuleCommand: TBuildCommand;
   ModuleExecutor: TCommandExecutor;
+  DepResolver: TDependencyResolver;
   CurrentDir: string;
   OriginalDir: string;
   OverallStartTime: TDateTime;
@@ -235,8 +237,34 @@ begin
         Continue;
       end;
 
-      { Resolve artifacts for this module (add dependency paths) }
+      { Resolve artifacts for this module (add inter-module dependency paths) }
       FRegistry.ResolveArtifacts(Module);
+
+      { Resolve external dependencies from local repository }
+      if Assigned(Module.Config) and (Module.Config.Dependencies.Count > 0) then
+      begin
+        DepResolver := TDependencyResolver.Create;
+        try
+          DepResolver.Verbose := FVerbose;
+          try
+            DepResolver.ResolveDependencies(Module.Config);
+          except
+            on E: EDependencyError do
+            begin
+              TUtils.LogError(E.Message);
+              Inc(FModulesFailed);
+              P := New(PModuleResult);
+              P^.Name := Module.Name;
+              P^.Status := msFailure;
+              P^.ElapsedSecs := 0;
+              FResults.Add(P);
+              Continue;
+            end;
+          end;
+        finally
+          DepResolver.Free;
+        end;
+      end;
 
       { Change to module directory }
       CurrentDir := Module.Path;

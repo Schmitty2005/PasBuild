@@ -250,6 +250,11 @@ begin
           { Add dependency name to module's dependencies }
           if ModuleInfo.Dependencies.IndexOf(DependencyModuleInfo.Name) < 0 then
             ModuleInfo.Dependencies.Add(DependencyModuleInfo.Name);
+
+          { Update ModuleDependencies with resolved module name (replaces
+            raw relative path like "../opdf-lib" with the actual module name
+            "opdf-lib") so that install metadata records clean names. }
+          ModuleInfo.Config.ModuleDependencies[J] := DependencyModuleInfo.Name;
         end;
       end;
 

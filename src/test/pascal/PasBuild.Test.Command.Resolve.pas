@@ -18,7 +18,8 @@ uses
   Classes, SysUtils, fpcunit, testregistry, fpjson, jsonparser,
   PasBuild.Types,
   PasBuild.Command,
-  PasBuild.Command.Resolve;
+  PasBuild.Command.Resolve,
+  PasBuild.Repository;
 
 type
   { TTestableResolveCommand - Exposes JSON output for test assertions }
@@ -47,7 +48,13 @@ type
   { Tests for TResolveCommand — multi-module aggregator projects }
   TTestResolveCommandMulti = class(TTestCase)
   private
+    FTriplet: string;
     function BuildThreeModuleRegistry: TModuleRegistry;
+    procedure InstallMockArtifact(const AName, AVersion: string);
+    procedure CleanupMockArtifact(const AName, AVersion: string);
+  protected
+    procedure SetUp; override;
+    procedure TearDown; override;
   published
     procedure TestMultiModuleProjectType;
     procedure TestMultiModuleBuildOrder;
@@ -59,6 +66,9 @@ type
 
 
 implementation
+
+uses
+  PasBuild.Utils;
 
 { TTestableResolveCommand }
 
@@ -505,6 +515,67 @@ end;
 
 
 { TTestResolveCommandMulti }
+
+procedure TTestResolveCommandMulti.InstallMockArtifact(const AName, AVersion: string);
+var
+  Metadata: TArtifactMetadata;
+  DepArray: TMetadataDependencyArray;
+  UnitsDir, DummyFile: string;
+  F: TextFile;
+begin
+  TLocalRepository.EnsureDirectoryStructure(AName, AVersion, FTriplet);
+  UnitsDir := TLocalRepository.GetUnitsPath(AName, AVersion, FTriplet);
+  DummyFile := IncludeTrailingPathDelimiter(UnitsDir) + AName + '.ppu';
+  AssignFile(F, DummyFile);
+  Rewrite(F);
+  WriteLn(F, '// dummy ppu');
+  CloseFile(F);
+
+  SetLength(DepArray, 0);
+  Metadata := TArtifactMetadata.Create;
+  try
+    Metadata.Name := AName;
+    Metadata.Version := AVersion;
+    Metadata.Packaging := 'library';
+    Metadata.FPCVersion := '3.2.2';
+    Metadata.TargetCPU := 'x86_64';
+    Metadata.TargetOS := 'linux';
+    Metadata.Timestamp := FormatDateTime('yyyy-mm-dd"T"hh:nn:ss', Now);
+    Metadata.Dependencies := DepArray;
+    TLocalRepository.WriteMetadata(AName, AVersion, FTriplet, Metadata);
+  finally
+    Metadata.Free;
+  end;
+end;
+
+procedure TTestResolveCommandMulti.CleanupMockArtifact(const AName, AVersion: string);
+var
+  ArtifactDir, UnitsDir: string;
+begin
+  ArtifactDir := TLocalRepository.GetArtifactPath(AName, AVersion, FTriplet);
+  if not DirectoryExists(ArtifactDir) then
+    Exit;
+  { Remove units directory contents and directory }
+  UnitsDir := TLocalRepository.GetUnitsPath(AName, AVersion, FTriplet);
+  DeleteFile(IncludeTrailingPathDelimiter(UnitsDir) + AName + '.ppu');
+  RemoveDir(UnitsDir);
+  { Remove metadata and artifact directory }
+  DeleteFile(TLocalRepository.GetMetadataPath(AName, AVersion, FTriplet));
+  RemoveDir(ArtifactDir);
+end;
+
+procedure TTestResolveCommandMulti.SetUp;
+begin
+  inherited SetUp;
+  FTriplet := TUtils.GetTargetTriplet;
+  InstallMockArtifact('some-ext', '2.0.0');
+end;
+
+procedure TTestResolveCommandMulti.TearDown;
+begin
+  CleanupMockArtifact('some-ext', '2.0.0');
+  inherited TearDown;
+end;
 
 function TTestResolveCommandMulti.BuildThreeModuleRegistry: TModuleRegistry;
 var

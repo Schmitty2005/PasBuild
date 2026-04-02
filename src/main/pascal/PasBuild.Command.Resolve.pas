@@ -18,6 +18,7 @@ uses
   Classes, SysUtils, fpjson,
   PasBuild.Types,
   PasBuild.Command,
+  PasBuild.Dependencies,
   PasBuild.Utils;
 
 type
@@ -445,9 +446,27 @@ begin
 end;
 
 procedure TResolveCommand.ResolveAndChDir(AModule: TModuleInfo);
+var
+  Resolver: TDependencyResolver;
 begin
-  { Resolve artifact paths (populates ResolvedModulePaths) }
+  { Resolve inter-module artifact paths (populates ResolvedModulePaths) }
   FRegistry.ResolveArtifacts(AModule);
+
+  { Resolve external dependencies from local repository }
+  if Assigned(AModule.Config) and (AModule.Config.Dependencies.Count > 0) then
+  begin
+    Resolver := TDependencyResolver.Create;
+    try
+      try
+        Resolver.ResolveDependencies(AModule.Config);
+      except
+        on E: EDependencyError do
+          TUtils.LogWarning(E.Message);
+      end;
+    finally
+      Resolver.Free;
+    end;
+  end;
 
   { Change to module directory so auto-scan finds source files }
   if DirectoryExists(AModule.Path) then
