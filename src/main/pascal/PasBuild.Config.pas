@@ -233,6 +233,9 @@ begin
   // Parse test source (optional)
   AConfig.TestConfig.TestSource := GetNodeText(ATestNode, 'testSource', 'TestRunner.pas');
 
+  // Parse test source directory (optional, defaults to src/test/pascal)
+  AConfig.TestConfig.SourceDirectory := GetNodeText(ATestNode, 'testSourceDirectory', 'src/test/pascal');
+
   // Parse framework-specific options
   OptionsNode := ATestNode.FindNode('frameworkOptions');
   if Assigned(OptionsNode) then

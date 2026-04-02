@@ -75,7 +75,7 @@ var
 begin
   Result := tfFPCUnit;  // Default fallback
 
-  TestSourcePath := TUtils.NormalizePath('src/test/pascal/' + Config.TestConfig.TestSource);
+  TestSourcePath := TUtils.NormalizePath(Config.TestConfig.SourceDirectory + '/' + Config.TestConfig.TestSource);
 
   if not FileExists(TestSourcePath) then
   begin
@@ -161,7 +161,7 @@ begin
   end;
 
   // Add test source directory and its subdirectories
-  TestBaseDir := TUtils.NormalizePath('src/test/pascal');
+  TestBaseDir := TUtils.NormalizePath(Config.TestConfig.SourceDirectory);
   Result := Result + ' -Fu' + TUtils.QuotePath(TestBaseDir);
 
   // Scan and add test subdirectories (unit paths)
@@ -237,9 +237,9 @@ begin
 
   // Check if test directory exists — absence is a skip, not a failure
   // (matches Maven behaviour: no test sources = SUCCESS)
-  if not DirectoryExists('src/test/pascal') then
+  if not DirectoryExists(Config.TestConfig.SourceDirectory) then
   begin
-    TUtils.LogInfo('No test directory found (src/test/pascal/), skipping');
+    TUtils.LogInfo('No test directory found (' + Config.TestConfig.SourceDirectory + '/), skipping');
     Result := 0;
     Exit;
   end;
@@ -276,7 +276,7 @@ begin
   end;
 
   // Check if test source file exists
-  TestSourcePath := TUtils.NormalizePath('src/test/pascal/' + Config.TestConfig.TestSource);
+  TestSourcePath := TUtils.NormalizePath(Config.TestConfig.SourceDirectory + '/' + Config.TestConfig.TestSource);
   if not FileExists(TestSourcePath) then
   begin
     TUtils.LogError('Test source file not found: ' + TestSourcePath);
@@ -289,7 +289,7 @@ begin
     StatusDir := TUtils.CreateStatusDirectory('test-compile');
 
     // Collect and write test source files list
-    SourceFiles := TUtils.CollectSourceFiles(TUtils.NormalizePath('src/test/pascal'));
+    SourceFiles := TUtils.CollectSourceFiles(TUtils.NormalizePath(Config.TestConfig.SourceDirectory));
     try
       TUtils.LogInfo('Found ' + IntToStr(SourceFiles.Count) + ' test source file(s)');
       TUtils.WriteListFile(StatusDir + DirectorySeparator + 'inputUnits.lst', SourceFiles);
@@ -298,7 +298,7 @@ begin
     end;
 
     // Collect and write test include files list
-    IncludeFiles := TUtils.CollectIncludeFiles(TUtils.NormalizePath('src/test/pascal'));
+    IncludeFiles := TUtils.CollectIncludeFiles(TUtils.NormalizePath(Config.TestConfig.SourceDirectory));
     try
       if IncludeFiles.Count > 0 then
         TUtils.LogInfo('Found ' + IntToStr(IncludeFiles.Count) + ' test include file(s)');
@@ -406,12 +406,12 @@ begin
   TestExecutable := OutputDir + DirectorySeparator + 'TestRunner' + TUtils.GetPlatformExecutableSuffix;
 
   // Check if test executable exists.
-  // Absence means test-compile was skipped (no src/test/pascal/) — skip here too.
+  // Absence means test-compile was skipped (no test source directory) — skip here too.
   if not FileExists(TestExecutable) then
   begin
-    if not DirectoryExists('src/test/pascal') then
+    if not DirectoryExists(Config.TestConfig.SourceDirectory) then
     begin
-      TUtils.LogInfo('No test directory found (src/test/pascal/), skipping');
+      TUtils.LogInfo('No test directory found (' + Config.TestConfig.SourceDirectory + '/), skipping');
       Result := 0;
     end
     else

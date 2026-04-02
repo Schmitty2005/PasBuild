@@ -110,6 +110,7 @@ type
   private
     FFramework: TTestFramework;
     FTestSource: string;
+    FSourceDirectory: string;
     FFrameworkOptions: TStringList;
   public
     constructor Create;
@@ -117,6 +118,7 @@ type
 
     property Framework: TTestFramework read FFramework write FFramework;
     property TestSource: string read FTestSource write FTestSource;
+    property SourceDirectory: string read FSourceDirectory write FSourceDirectory;
     property FrameworkOptions: TStringList read FFrameworkOptions;
   end;
 
@@ -335,6 +337,7 @@ begin
   // Set defaults
   FFramework := tfAuto;  // Auto-detect by default
   FTestSource := 'TestRunner.pas';  // Common default name
+  FSourceDirectory := 'src/test/pascal';  // Standard layout by default
 end;
 
 destructor TTestConfig.Destroy;

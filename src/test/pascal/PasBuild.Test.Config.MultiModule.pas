@@ -88,6 +88,15 @@ type
     procedure TestSourceDirectorySubdir;
   end;
 
+  { Test parsing of <testSourceDirectory> element from XML }
+  TTestParseTestSourceDirectory = class(TTestCase)
+  private
+    function GetFixturePath(const AFileName: string): string;
+  published
+    procedure TestTestSourceDirectoryDefault;
+    procedure TestTestSourceDirectoryCustom;
+  end;
+
 implementation
 
 { TTestParsePackaging }
@@ -528,6 +537,39 @@ begin
   end;
 end;
 
+{ TTestParseTestSourceDirectory }
+
+function TTestParseTestSourceDirectory.GetFixturePath(const AFileName: string): string;
+begin
+  Result := 'fixtures/multi-module/' + AFileName;
+end;
+
+procedure TTestParseTestSourceDirectory.TestTestSourceDirectoryDefault;
+var
+  Config: TProjectConfig;
+begin
+  Config := TConfigLoader.LoadProjectXML(GetFixturePath('test-source-directory-default.xml'));
+  try
+    AssertEquals('Default testSourceDirectory should be src/test/pascal',
+      'src/test/pascal', Config.TestConfig.SourceDirectory);
+  finally
+    Config.Free;
+  end;
+end;
+
+procedure TTestParseTestSourceDirectory.TestTestSourceDirectoryCustom;
+var
+  Config: TProjectConfig;
+begin
+  Config := TConfigLoader.LoadProjectXML(GetFixturePath('test-source-directory-custom.xml'));
+  try
+    AssertEquals('Custom testSourceDirectory should be test',
+      'test', Config.TestConfig.SourceDirectory);
+  finally
+    Config.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TTestParsePackaging);
   RegisterTest(TTestParseModules);
@@ -535,5 +577,6 @@ initialization
   RegisterTest(TTestVersionLoading);
   RegisterTest(TTestParseModuleActiveByDefault);
   RegisterTest(TTestParseSourceDirectory);
+  RegisterTest(TTestParseTestSourceDirectory);
 
 end.

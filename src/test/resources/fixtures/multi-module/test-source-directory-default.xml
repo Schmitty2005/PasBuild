@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+  <name>DefaultTestSourceDir</name>
+  <version>1.0.0</version>
+
+  <build>
+    <mainSource>Main.pas</mainSource>
+  </build>
+
+  <test>
+    <testSource>TestRunner.pas</testSource>
+  </test>
+</project>
