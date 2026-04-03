@@ -256,7 +256,7 @@ begin
                 if not PhaseInfo.Valid then
                   TUtils.LogWarning('Plugin ' + Args.GoalString + ' did not declare a valid phase, running without dependencies');
                 Command := TPluginCommand.Create(Config, Args.ProfileIds,
-                  PluginPath, Args.GoalString, PhaseInfo.AfterGoal);
+                  PluginPath, Args.GoalString, PhaseInfo.AfterGoal, Registry);
               end
               else
                 // Fall through to single-module behavior

@@ -65,6 +65,7 @@ type
   published
     procedure TestPluginCommandGetName;
     procedure TestPluginCommandGetDependenciesAfterCompile;
+    procedure TestPluginCommandGetDependenciesAfterCompileInPomProject;
     procedure TestPluginCommandGetDependenciesNone;
   end;
 
@@ -75,7 +76,8 @@ uses
   BaseUnix,
   {$ENDIF}
   PasBuild.Command,
-  PasBuild.Command.Compile;
+  PasBuild.Command.Compile,
+  PasBuild.Command.Reactor;
 
 { Helper to recursively delete a directory }
 procedure RemoveDir(const ADir: string);
@@ -409,6 +411,34 @@ begin
     end;
   finally
     Cmd.Free;
+  end;
+end;
+
+procedure TTestPluginCommand.TestPluginCommandGetDependenciesAfterCompileInPomProject;
+var
+  Cmd: TPluginCommand;
+  Deps: TBuildCommandList;
+  Registry: TModuleRegistry;
+begin
+  FConfig.BuildConfig.ProjectType := ptPom;
+  Registry := TModuleRegistry.Create;
+  try
+    Cmd := TPluginCommand.Create(FConfig, FProfileIds, '/usr/bin/pasbuild-hello', 'hello',
+      bgCompile, Registry);
+    try
+      Deps := Cmd.GetDependencies;
+      try
+        AssertEquals('Pom project should have one dependency', 1, Deps.Count);
+        AssertEquals('Pom dependency should be reactor-compile', 'reactor-compile', Deps[0].Name);
+      finally
+        Deps[0].Free;
+        Deps.Free;
+      end;
+    finally
+      Cmd.Free;
+    end;
+  finally
+    Registry.Free;
   end;
 end;
 

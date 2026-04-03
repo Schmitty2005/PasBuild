@@ -52,11 +52,13 @@ type
     FExecutablePath: string;
     FGoalName: string;
     FAfterGoal: TBuildGoal;
+    FRegistry: TModuleRegistry;
   protected
     function GetName: string; override;
   public
     constructor Create(AConfig: TProjectConfig; AProfileIds: TStringList;
-      const AExecutablePath, AGoalName: string; AAfterGoal: TBuildGoal);
+      const AExecutablePath, AGoalName: string; AAfterGoal: TBuildGoal;
+      ARegistry: TModuleRegistry = nil);
     function Execute: Integer; override;
     function GetDependencies: TBuildCommandList; override;
   end;
@@ -73,7 +75,8 @@ uses
   PasBuild.Command.Test,
   PasBuild.Command.Package,
   PasBuild.Command.SourcePackage,
-  PasBuild.Command.Install;
+  PasBuild.Command.Install,
+  PasBuild.Command.Reactor;
 
 const
   PluginPrefix = 'pasbuild-';
@@ -229,12 +232,14 @@ end;
 { TPluginCommand }
 
 constructor TPluginCommand.Create(AConfig: TProjectConfig; AProfileIds: TStringList;
-  const AExecutablePath, AGoalName: string; AAfterGoal: TBuildGoal);
+  const AExecutablePath, AGoalName: string; AAfterGoal: TBuildGoal;
+  ARegistry: TModuleRegistry = nil);
 begin
   inherited Create(AConfig, AProfileIds);
   FExecutablePath := AExecutablePath;
   FGoalName := AGoalName;
   FAfterGoal := AAfterGoal;
+  FRegistry := ARegistry;
 end;
 
 function TPluginCommand.GetName: string;
@@ -251,25 +256,46 @@ begin
     Dep := nil;
     case FAfterGoal of
       bgClean:
-        Dep := TCleanCommand.Create(Config, ProfileIds);
+        if FRegistry <> nil then
+          Dep := TReactorCommand.Create(Config, ProfileIds, FRegistry, 'clean')
+        else
+          Dep := TCleanCommand.Create(Config, ProfileIds);
       bgProcessResources:
         Dep := TProcessResourcesCommand.Create(Config, Config.ResourcesConfig,
           Config.BuildConfig.OutputDirectory);
       bgCompile:
-        Dep := TCompileCommand.Create(Config, ProfileIds);
+        if FRegistry <> nil then
+          Dep := TReactorCommand.Create(Config, ProfileIds, FRegistry, 'compile')
+        else
+          Dep := TCompileCommand.Create(Config, ProfileIds);
       bgProcessTestResources:
         Dep := TProcessTestResourcesCommand.Create(Config, Config.TestResourcesConfig,
           Config.BuildConfig.OutputDirectory);
       bgTestCompile:
-        Dep := TTestCompileCommand.Create(Config, ProfileIds);
+        if FRegistry <> nil then
+          Dep := TReactorCommand.Create(Config, ProfileIds, FRegistry, 'test-compile')
+        else
+          Dep := TTestCompileCommand.Create(Config, ProfileIds);
       bgTest:
-        Dep := TTestCommand.Create(Config, ProfileIds);
+        if FRegistry <> nil then
+          Dep := TReactorCommand.Create(Config, ProfileIds, FRegistry, 'test')
+        else
+          Dep := TTestCommand.Create(Config, ProfileIds);
       bgPackage:
-        Dep := TPackageCommand.Create(Config, ProfileIds);
+        if FRegistry <> nil then
+          Dep := TReactorCommand.Create(Config, ProfileIds, FRegistry, 'package')
+        else
+          Dep := TPackageCommand.Create(Config, ProfileIds);
       bgSourcePackage:
-        Dep := TSourcePackageCommand.Create(Config, ProfileIds);
+        if FRegistry <> nil then
+          Dep := TReactorCommand.Create(Config, ProfileIds, FRegistry, 'source-package')
+        else
+          Dep := TSourcePackageCommand.Create(Config, ProfileIds);
       bgInstall:
-        Dep := TInstallCommand.Create(Config, ProfileIds);
+        if FRegistry <> nil then
+          Dep := TReactorCommand.Create(Config, ProfileIds, FRegistry, 'install')
+        else
+          Dep := TInstallCommand.Create(Config, ProfileIds);
     end;
     if Dep <> nil then
       Result.Add(Dep);
