@@ -132,13 +132,19 @@ begin
         ActiveDefines
       );
 
-      // If manual paths were listed, add them too (resolved relative to base source path)
+      // If manual paths were listed, add them too.
+      // Paths starting with ../ or ./ are relative to the module root (project.xml
+      // directory) and must not be prefixed with the source directory. All other
+      // paths are resolved relative to the base source directory.
       for I := 0 to Config.BuildConfig.UnitPaths.Count - 1 do
       begin
         ConditionalPath := Config.BuildConfig.UnitPaths[I];
         if TUtils.IsConditionMet(ConditionalPath.Condition, ActiveDefines) then
         begin
-          s := TUtils.NormalizePath(BasePath + '/' + ConditionalPath.Path);
+          if TUtils.IsModuleRootRelativePath(ConditionalPath.Path) then
+            s := TUtils.NormalizePath(ConditionalPath.Path)
+          else
+            s := TUtils.NormalizePath(BasePath + '/' + ConditionalPath.Path);
           UnitPaths.Add(s);
         end;
       end;

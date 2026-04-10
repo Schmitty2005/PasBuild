@@ -31,6 +31,7 @@ type
     class function GetFPCExecutable: string;
     { Path normalization }
     class function NormalizePath(const APath: string): string;
+    class function IsModuleRootRelativePath(const APath: string): Boolean;
 
     { Directory and file operations }
     class function VerifyDirectoryLayout(const AProjectRoot: string): Boolean;
@@ -113,6 +114,18 @@ begin
     if Result[I] = '/' then
       Result[I] := DirectorySeparator;
   end;
+end;
+
+class function TUtils.IsModuleRootRelativePath(const APath: string): Boolean;
+begin
+  // Paths starting with ../ or ./ are relative to the module root (the directory
+  // containing project.xml), not to the source directory. This convention mirrors
+  // how shells interpret relative paths: anything escaping the current tree via
+  // ../ cannot logically be inside <sourceDirectory>.
+  // Note: project.xml always uses / (Maven convention), so we check / only here;
+  // NormalizePath is applied after this check to convert to platform separators.
+  Result := ((Length(APath) >= 3) and (Copy(APath, 1, 3) = '../'))
+         or ((Length(APath) >= 2) and (Copy(APath, 1, 2) = './'));
 end;
 
 class function TUtils.VerifyDirectoryLayout(const AProjectRoot: string): Boolean;

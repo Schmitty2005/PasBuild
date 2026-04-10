@@ -167,6 +167,17 @@ begin
     );
     Result.Sorted := False;
     Result.Insert(0, BasePath);
+
+    { Also add any explicitly listed paths that point outside the source tree
+      (start with ../ or ./). These cannot be found by scanning BasePath, so
+      they must be added directly. In-tree paths are already found by the scan. }
+    for I := 0 to AConfig.BuildConfig.UnitPaths.Count - 1 do
+    begin
+      ConditionalPath := AConfig.BuildConfig.UnitPaths[I];
+      if TUtils.IsConditionMet(ConditionalPath.Condition, AActiveDefines) then
+        if TUtils.IsModuleRootRelativePath(ConditionalPath.Path) then
+          Result.Add(TUtils.NormalizePath(ConditionalPath.Path));
+    end;
   end;
 
   { Add resolved module dependency paths }

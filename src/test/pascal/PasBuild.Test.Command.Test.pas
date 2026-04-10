@@ -21,9 +21,31 @@ interface
 uses
   Classes, SysUtils, fpcunit, testregistry,
   PasBuild.Types,
+  PasBuild.Command.Compile,
   PasBuild.Command.Test;
 
 type
+  { Subclass to expose the protected BuildCompilerCommand for unit testing }
+  TCompileCommandTestable = class(TCompileCommand)
+  public
+    function ExposedBuildCommand(const ASourcePath: string): string;
+  end;
+
+  { Verify that BuildCompilerCommand handles out-of-tree ../ unit paths correctly }
+  TTestCompileCommandUnitPaths = class(TTestCase)
+  private
+    FConfig: TProjectConfig;
+    FProfileIds: TStringList;
+  protected
+    procedure SetUp; override;
+    procedure TearDown; override;
+  published
+    { A path starting with ../ must be used as-is, not prefixed with sourceDirectory }
+    procedure TestOutOfTreeUnitPathNotPrefixedWithSourceDir;
+    { A plain relative path must still be resolved relative to sourceDirectory }
+    procedure TestInTreeUnitPathPrefixedWithSourceDir;
+  end;
+
   { Subclass to expose the protected BuildTestCompilerCommand for unit testing }
   TTestCompileCommandTestable = class(TTestCompileCommand)
   public
@@ -161,6 +183,75 @@ begin
   AssertEquals('test should return 0 (skip) when no test executable exists', 0, ExitCode);
 end;
 
+{ TCompileCommandTestable }
+
+function TCompileCommandTestable.ExposedBuildCommand(const ASourcePath: string): string;
+begin
+  Result := BuildCompilerCommand(ASourcePath);
+end;
+
+{ TTestCompileCommandUnitPaths }
+
+procedure TTestCompileCommandUnitPaths.SetUp;
+begin
+  FConfig := TProjectConfig.Create;
+  FConfig.Name := 'test-module';
+  FConfig.Version := '1.0.0';
+  FProfileIds := TStringList.Create;
+end;
+
+procedure TTestCompileCommandUnitPaths.TearDown;
+begin
+  FProfileIds.Free;
+  FConfig.Free;
+end;
+
+procedure TTestCompileCommandUnitPaths.TestOutOfTreeUnitPathNotPrefixedWithSourceDir;
+var
+  Cmd: TCompileCommandTestable;
+  CmdLine: string;
+  OutOfTreePath: string;
+begin
+  OutOfTreePath := '../../framework/src/main/pascal/corelib';
+  FConfig.BuildConfig.UnitPaths.Add(TConditionalPath.Create(OutOfTreePath));
+
+  Cmd := TCompileCommandTestable.Create(FConfig, FProfileIds);
+  try
+    CmdLine := Cmd.ExposedBuildCommand('src/main/pascal/main.pas');
+  finally
+    Cmd.Free;
+  end;
+
+  AssertTrue(
+    'Out-of-tree path must appear in -Fu without sourceDirectory prefix',
+    Pos('-Fu../../framework/src/main/pascal/corelib', CmdLine) > 0
+  );
+  AssertEquals(
+    'Out-of-tree path must NOT be prefixed with sourceDirectory',
+    0, Pos('-Fusrc/main/pascal/../../', CmdLine)
+  );
+end;
+
+procedure TTestCompileCommandUnitPaths.TestInTreeUnitPathPrefixedWithSourceDir;
+var
+  Cmd: TCompileCommandTestable;
+  CmdLine: string;
+begin
+  FConfig.BuildConfig.UnitPaths.Add(TConditionalPath.Create('corelib'));
+
+  Cmd := TCompileCommandTestable.Create(FConfig, FProfileIds);
+  try
+    CmdLine := Cmd.ExposedBuildCommand('src/main/pascal/main.pas');
+  finally
+    Cmd.Free;
+  end;
+
+  AssertTrue(
+    'In-tree path must be resolved relative to sourceDirectory',
+    Pos('-Fusrc/main/pascal/corelib', CmdLine) > 0
+  );
+end;
+
 { TTestCompileCommandTestable }
 
 function TTestCompileCommandTestable.ExposedBuildCommand(const ATestSourcePath: string): string;
@@ -235,6 +326,7 @@ begin
 end;
 
 initialization
+  RegisterTest(TTestCompileCommandUnitPaths);
   RegisterTest(TTestCompileCommandModulePaths);
   RegisterTest(TTestCommandNoTestDir);
 

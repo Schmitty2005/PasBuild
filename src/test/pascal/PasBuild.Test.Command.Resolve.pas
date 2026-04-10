@@ -37,6 +37,7 @@ type
     procedure TestSingleModuleWithProfiles;
     procedure TestSingleModuleWithDefines;
     procedure TestSingleModuleWithUnitPaths;
+    procedure TestAutoScanModeOutOfTreeUnitPath;
     procedure TestSingleModuleWithExternalDeps;
     procedure TestSingleModuleOutputSection;
     procedure TestSingleModuleTestSection;
@@ -302,6 +303,55 @@ begin
         AssertTrue('Should have unitPaths', JSON.IndexOfName('unitPaths') >= 0);
         UnitArr := JSON.Arrays['unitPaths'];
         AssertTrue('Should have at least 2 unit paths', UnitArr.Count >= 2);
+      finally
+        JSON.Free;
+      end;
+    finally
+      Command.Free;
+    end;
+  finally
+    Config.Free;
+  end;
+end;
+
+procedure TTestResolveCommandSingle.TestAutoScanModeOutOfTreeUnitPath;
+var
+  Config: TProjectConfig;
+  Command: TTestableResolveCommand;
+  JSON: TJSONObject;
+  UnitArr: TJSONArray;
+  I: Integer;
+  Found: Boolean;
+  OutOfTreePath: string;
+begin
+  OutOfTreePath := '../../framework/src/main/pascal/corelib';
+
+  Config := TProjectConfig.Create;
+  try
+    Config.Name := 'test-app';
+    Config.BuildConfig.ProjectType := ptApplication;
+    { Auto-scan mode (ManualUnitPaths = False) with an out-of-tree path }
+    Config.BuildConfig.UnitPaths.Add(TConditionalPath.Create(OutOfTreePath));
+
+    Command := TTestableResolveCommand.Create(Config, nil);
+    try
+      JSON := Command.BuildJSON;
+      try
+        AssertTrue('Should have unitPaths', JSON.IndexOfName('unitPaths') >= 0);
+        UnitArr := JSON.Arrays['unitPaths'];
+
+        Found := False;
+        for I := 0 to UnitArr.Count - 1 do
+          if UnitArr.Strings[I] = OutOfTreePath then
+          begin
+            Found := True;
+            Break;
+          end;
+
+        AssertTrue(
+          'Out-of-tree path must appear in unitPaths without sourceDirectory prefix',
+          Found
+        );
       finally
         JSON.Free;
       end;
