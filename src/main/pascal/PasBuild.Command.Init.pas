@@ -646,7 +646,7 @@ begin
   ProjectName := PromptUser('Project name', GetDefaultProjectName);
   Version := PromptUser('Version', '1.0.0');
   Author := PromptUser('Author', GetDefaultAuthor);
-  License := PromptUser('License (MIT/BSD-3-Clause/GPL-3.0/Apache-2.0/Proprietary)', 'MIT');
+  License := PromptUser('License (MIT/BSD-3-Clause/GPL-3.0/Apache-2.0/Proprietary)', 'BSD-3-Clause');
 
   WriteLn;
   TUtils.LogInfo('Creating project structure...');
