@@ -88,6 +88,7 @@ type
     FManualUnitPaths: Boolean;
     FSourceDirectory: string;           // Source directory (default: src/main/pascal)
     FResolvedModulePaths: TStringList;  // Artifact paths from module dependencies
+    FBootstrapExclude: TStringList;     // Unit names excluded from bootstrap uses clause
   public
     constructor Create;
     destructor Destroy; override;
@@ -103,6 +104,7 @@ type
     property ManualUnitPaths: Boolean read FManualUnitPaths write FManualUnitPaths;
     property SourceDirectory: string read FSourceDirectory write FSourceDirectory;
     property ResolvedModulePaths: TStringList read FResolvedModulePaths;
+    property BootstrapExclude: TStringList read FBootstrapExclude;
   end;
 
   { TTestConfig - Test configuration section }
@@ -309,6 +311,11 @@ begin
   FResolvedModulePaths := TStringList.Create;
   FResolvedModulePaths.Duplicates := dupIgnore;
 
+  FBootstrapExclude := TStringList.Create;
+  FBootstrapExclude.CaseSensitive := False;
+  FBootstrapExclude.Duplicates := dupIgnore;
+  FBootstrapExclude.Sorted := True;
+
   // Set defaults
   FProjectType := ptApplication;  // Application by default
   FOutputDirectory := 'target';
@@ -323,6 +330,7 @@ begin
   FUnitPaths.Free;
   FIncludePaths.Free;
   FResolvedModulePaths.Free;
+  FBootstrapExclude.Free;
   inherited Destroy;
 end;
 

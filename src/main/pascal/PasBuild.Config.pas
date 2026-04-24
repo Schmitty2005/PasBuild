@@ -29,6 +29,7 @@ type
     class procedure ParseDefines(AParent: TDOMNode; ADefines: TStringList);
     class procedure ParseCompilerOptions(AParent: TDOMNode; AOptions: TStringList);
     class procedure ParseConditionalPaths(AParent: TDOMNode; const ATagName: string; APaths: TConditionalPathList);
+    class procedure ParseBootstrapExclude(AParent: TDOMNode; AExclude: TStringList);
     class procedure ParseBuildSection(ABuildNode: TDOMNode; AConfig: TProjectConfig);
     class procedure ParseTestSection(ATestNode: TDOMNode; AConfig: TProjectConfig);
     class procedure ParseResourcesSection(AResourcesNode: TDOMNode; AResourcesConfig: TResourcesConfig);
@@ -157,6 +158,31 @@ begin
   end;
 end;
 
+class procedure TConfigLoader.ParseBootstrapExclude(AParent: TDOMNode; AExclude: TStringList);
+var
+  ExcludeNode, ExcUnitNode: TDOMNode;
+  ExcUnitName: string;
+  I: Integer;
+begin
+  if not Assigned(AParent) then
+    Exit;
+
+  ExcludeNode := AParent.FindNode('bootstrapExclude');
+  if not Assigned(ExcludeNode) then
+    Exit;
+
+  for I := 0 to ExcludeNode.ChildNodes.Count - 1 do
+  begin
+    ExcUnitNode := ExcludeNode.ChildNodes[I];
+    if (ExcUnitNode.NodeType = ELEMENT_NODE) and (ExcUnitNode.NodeName = 'unit') then
+    begin
+      ExcUnitName := Trim(string(ExcUnitNode.TextContent));
+      if ExcUnitName <> '' then
+        AExclude.Add(ExcUnitName);
+    end;
+  end;
+end;
+
 class procedure TConfigLoader.ParseBuildSection(ABuildNode: TDOMNode; AConfig: TProjectConfig);
 var
   ProjectTypeStr: string;
@@ -208,6 +234,9 @@ begin
 
   // Parse conditional include paths
   ParseConditionalPaths(ABuildNode, 'includePaths', AConfig.BuildConfig.IncludePaths);
+
+  // Parse bootstrapExclude unit list (library projects only, but safe to parse for all)
+  ParseBootstrapExclude(ABuildNode, AConfig.BuildConfig.BootstrapExclude);
 end;
 
 class procedure TConfigLoader.ParseTestSection(ATestNode: TDOMNode; AConfig: TProjectConfig);
