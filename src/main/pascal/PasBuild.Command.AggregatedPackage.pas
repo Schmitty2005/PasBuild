@@ -26,6 +26,7 @@ type
   TAggregatedPackageCommand = class(TBuildCommand)
   private
     FRegistry: TModuleRegistry;
+    FSelectedModule: string;
     function GetArchiveFileName: string;
     function FindFileWithVariants(const ABaseName: string): string;
     function CollectApplicationExecutables: TStringList;
@@ -34,7 +35,7 @@ type
     function GetName: string; override;
   public
     constructor Create(AConfig: TProjectConfig; AProfileIds: TStringList;
-      ARegistry: TModuleRegistry); reintroduce;
+      ARegistry: TModuleRegistry; const ASelectedModule: string = ''); reintroduce;
     function Execute: Integer; override;
     function GetDependencies: TBuildCommandList; override;
   end;
@@ -44,10 +45,11 @@ implementation
 { TAggregatedPackageCommand }
 
 constructor TAggregatedPackageCommand.Create(AConfig: TProjectConfig; AProfileIds: TStringList;
-  ARegistry: TModuleRegistry);
+  ARegistry: TModuleRegistry; const ASelectedModule: string = '');
 begin
   inherited Create(AConfig, AProfileIds);
   FRegistry := ARegistry;
+  FSelectedModule := ASelectedModule;
 end;
 
 function TAggregatedPackageCommand.GetName: string;
@@ -59,8 +61,8 @@ function TAggregatedPackageCommand.GetDependencies: TBuildCommandList;
 begin
   Result := TBuildCommandList.Create(False); // Don't own the objects
   try
-    // Aggregated package depends on: reactor compile (builds all modules)
-    Result.Add(TReactorCommand.Create(Config, ProfileIds, FRegistry, 'compile'));
+    // Aggregated package depends on: reactor compile (builds all modules, or selected module)
+    Result.Add(TReactorCommand.Create(Config, ProfileIds, FRegistry, 'compile', FSelectedModule));
   except
     Result.Free;
     raise;
@@ -69,16 +71,33 @@ end;
 
 function TAggregatedPackageCommand.GetArchiveFileName: string;
 var
-  BaseName, OutputDir: string;
+  BaseName, OutputDir, Version: string;
+  I: Integer;
+  Module: TModuleInfo;
 begin
-  // Archive name: target/<aggregator-name>-<version>.zip
-  // Use aggregator's output directory
-  OutputDir := TUtils.NormalizePath(Config.BuildConfig.OutputDirectory);
+  if FSelectedModule <> '' then
+  begin
+    // Single-module package: archive goes into the module's own target/ directory
+    for I := 0 to FRegistry.Modules.Count - 1 do
+    begin
+      Module := TModuleInfo(FRegistry.Modules[I]);
+      if CompareText(Module.Name, FSelectedModule) = 0 then
+      begin
+        OutputDir := Module.Path + DirectorySeparator + 'target';
+        Version := Module.Config.Version;
+        if Version = '' then
+          Version := Config.Version;
+        Result := OutputDir + DirectorySeparator + Module.Name + '-' + Version + '.zip';
+        Exit;
+      end;
+    end;
+  end;
 
+  // Full aggregated package: archive goes into the aggregator's target/ directory
+  OutputDir := TUtils.NormalizePath(Config.BuildConfig.OutputDirectory);
   BaseName := Config.Name;
   if BaseName = '' then
     BaseName := 'project';
-
   Result := OutputDir + DirectorySeparator + BaseName + '-' + Config.Version + '.zip';
 end;
 
@@ -119,6 +138,10 @@ begin
   for I := 0 to FRegistry.Modules.Count - 1 do
   begin
     Module := TModuleInfo(FRegistry.Modules[I]);
+
+    // Honour -m / --module selection
+    if (FSelectedModule <> '') and (CompareText(Module.Name, FSelectedModule) <> 0) then
+      Continue;
 
     // Skip aggregators and libraries - only include applications
     if Module.Config.BuildConfig.ProjectType <> ptApplication then
@@ -223,19 +246,20 @@ var
 begin
   Result := 0;
 
-  TUtils.LogInfo('Creating aggregated release package for multi-module project...');
+  if FSelectedModule <> '' then
+    TUtils.LogInfo('Creating release package for module: ' + FSelectedModule)
+  else
+    TUtils.LogInfo('Creating aggregated release package for multi-module project...');
 
-  // Ensure output directory exists
-  OutputDir := TUtils.NormalizePath(Config.BuildConfig.OutputDirectory);
+  // Derive archive name first; output directory follows from it
+  ArchiveName := GetArchiveFileName;
+  OutputDir := ExtractFilePath(ArchiveName);
   if not ForceDirectories(OutputDir) then
   begin
     TUtils.LogError('Failed to create output directory: ' + OutputDir);
     Result := 1;
     Exit;
   end;
-
-  // Get archive filename
-  ArchiveName := GetArchiveFileName;
 
   // Delete existing archive if present
   if FileExists(ArchiveName) then

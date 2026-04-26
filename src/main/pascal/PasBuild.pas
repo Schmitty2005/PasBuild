@@ -230,10 +230,10 @@ begin
               Command := TReactorCommand.Create(Config, Args.ProfileIds, Registry, 'test', Args.SelectedModule);
 
             bgPackage:
-              Command := TAggregatedPackageCommand.Create(Config, Args.ProfileIds, Registry);
+              Command := TAggregatedPackageCommand.Create(Config, Args.ProfileIds, Registry, Args.SelectedModule);
 
             bgSourcePackage:
-              Command := TAggregatedSourcePackageCommand.Create(Config, Args.ProfileIds, Registry);
+              Command := TAggregatedSourcePackageCommand.Create(Config, Args.ProfileIds, Registry, Args.SelectedModule);
 
             bgInstall:
               Command := TReactorCommand.Create(Config, Args.ProfileIds, Registry, 'install', Args.SelectedModule);
