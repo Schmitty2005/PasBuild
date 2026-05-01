@@ -17,7 +17,10 @@ interface
 uses
   Classes, SysUtils, fpcunit, testregistry,
   PasBuild.CLI,
-  PasBuild.Utils;
+  PasBuild.Utils,
+  PasBuild.Compiler.Backend,
+  PasBuild.Compiler.FPC,
+  PasBuild.Compiler.Factory;
 
 type
   { Test TUtils.QuotePath }
@@ -30,7 +33,7 @@ type
     procedure TestPathWithMultipleSpaces;
   end;
 
-  { Test TUtils.GetFPCExecutable / SetFPCExecutable }
+  { Test TUtils compiler backend accessors }
   TTestFPCExecutable = class(TTestCase)
   protected
     procedure TearDown; override;
@@ -42,7 +45,7 @@ type
     procedure TestCustomFPCUsedByIsFPCAvailable;
   end;
 
-  { Test TCommandLineArgs.FPCExecutable field }
+  { Test TCommandLineArgs.CompilerExecutable field }
   TTestCLIFPCExecutable = class(TTestCase)
   published
     procedure TestFPCExecutableFieldExists;
@@ -120,45 +123,46 @@ end;
 
 procedure TTestFPCExecutable.TearDown;
 begin
-  { Reset to default after each test to avoid leaking state }
-  TUtils.SetFPCExecutable('');
+  { Reset to default FPC backend after each test to avoid leaking state }
+  TUtils.SetCompilerBackend(TFPCBackend.Create('fpc'));
 end;
 
 procedure TTestFPCExecutable.TestDefaultReturnsFpc;
 begin
-  AssertEquals('Default FPC executable should be fpc',
-    'fpc', TUtils.GetFPCExecutable);
+  TUtils.SetCompilerBackend(TFPCBackend.Create('fpc'));
+  AssertEquals('Default compiler executable should be fpc',
+    'fpc', TUtils.GetCompilerBackend.Executable);
 end;
 
 procedure TTestFPCExecutable.TestSetCustomPath;
 begin
-  TUtils.SetFPCExecutable('fpc-ootb');
-  AssertEquals('Custom FPC executable should be returned',
-    'fpc-ootb', TUtils.GetFPCExecutable);
+  TUtils.SetCompilerBackend(TFPCBackend.Create('fpc-ootb'));
+  AssertEquals('Custom compiler executable should be returned',
+    'fpc-ootb', TUtils.GetCompilerBackend.Executable);
 end;
 
 procedure TTestFPCExecutable.TestSetAbsolutePath;
 begin
-  TUtils.SetFPCExecutable('/opt/fpc-3.3.1/bin/fpc');
+  TUtils.SetCompilerBackend(TFPCBackend.Create('/opt/fpc-3.3.1/bin/fpc'));
   AssertEquals('Absolute path should be returned',
-    '/opt/fpc-3.3.1/bin/fpc', TUtils.GetFPCExecutable);
+    '/opt/fpc-3.3.1/bin/fpc', TUtils.GetCompilerBackend.Executable);
 end;
 
 procedure TTestFPCExecutable.TestResetToDefault;
 begin
-  TUtils.SetFPCExecutable('/custom/fpc');
+  TUtils.SetCompilerBackend(TFPCBackend.Create('/custom/fpc'));
   AssertEquals('Custom path should be active',
-    '/custom/fpc', TUtils.GetFPCExecutable);
+    '/custom/fpc', TUtils.GetCompilerBackend.Executable);
 
-  TUtils.SetFPCExecutable('');
+  TUtils.SetCompilerBackend(TFPCBackend.Create('fpc'));
   AssertEquals('After reset, should return default fpc',
-    'fpc', TUtils.GetFPCExecutable);
+    'fpc', TUtils.GetCompilerBackend.Executable);
 end;
 
 procedure TTestFPCExecutable.TestCustomFPCUsedByIsFPCAvailable;
 begin
-  { Setting a nonexistent FPC should cause IsFPCAvailable to return False }
-  TUtils.SetFPCExecutable('nonexistent-fpc-binary-that-does-not-exist');
+  { Setting a nonexistent backend should cause IsFPCAvailable to return False }
+  TUtils.SetCompilerBackend(TFPCBackend.Create('nonexistent-fpc-binary-that-does-not-exist'));
   AssertFalse('IsFPCAvailable should return False for nonexistent binary',
     TUtils.IsFPCAvailable);
 end;
@@ -171,9 +175,9 @@ var
 begin
   Args.ProfileIds := TStringList.Create;
   try
-    Args.FPCExecutable := '/usr/bin/fpc';
-    AssertEquals('FPCExecutable field should be settable',
-      '/usr/bin/fpc', Args.FPCExecutable);
+    Args.CompilerExecutable := '/usr/bin/fpc';
+    AssertEquals('CompilerExecutable field should be settable',
+      '/usr/bin/fpc', Args.CompilerExecutable);
   finally
     Args.ProfileIds.Free;
   end;
@@ -185,9 +189,9 @@ var
 begin
   Args.ProfileIds := TStringList.Create;
   try
-    Args.FPCExecutable := '';
-    AssertEquals('FPCExecutable should default to empty string',
-      '', Args.FPCExecutable);
+    Args.CompilerExecutable := '';
+    AssertEquals('CompilerExecutable should default to empty string',
+      '', Args.CompilerExecutable);
   finally
     Args.ProfileIds.Free;
   end;
@@ -199,13 +203,13 @@ var
 begin
   Args.ProfileIds := TStringList.Create;
   try
-    Args.FPCExecutable := '/opt/fpc-3.3.1/bin/fpc';
+    Args.CompilerExecutable := '/opt/fpc-3.3.1/bin/fpc';
     AssertEquals('Absolute path should be stored',
-      '/opt/fpc-3.3.1/bin/fpc', Args.FPCExecutable);
+      '/opt/fpc-3.3.1/bin/fpc', Args.CompilerExecutable);
 
-    Args.FPCExecutable := 'fpc-ootb';
+    Args.CompilerExecutable := 'fpc-ootb';
     AssertEquals('Simple name should be stored',
-      'fpc-ootb', Args.FPCExecutable);
+      'fpc-ootb', Args.CompilerExecutable);
   finally
     Args.ProfileIds.Free;
   end;

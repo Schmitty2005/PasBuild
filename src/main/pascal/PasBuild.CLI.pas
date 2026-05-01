@@ -33,7 +33,7 @@ type
     ProjectFile: string;  // Custom project file path (default: project.xml)
     SelectedModule: string;  // Module name for multi-module builds (empty = all modules)
     ForceAllModules: Boolean;  // True when --all is passed; overrides activeByDefault=false
-    FPCExecutable: string;  // Custom FPC compiler path (empty = default 'fpc')
+    CompilerExecutable: string;  // Custom Pascal compiler path (empty = default 'fpc')
     ShowHelp: Boolean;
     ShowVersion: Boolean;
     ShowLicense: Boolean;
@@ -109,22 +109,27 @@ begin
   Result.ProjectFile := 'project.xml';  // Default
   Result.SelectedModule := '';  // Default: all modules
   Result.ForceAllModules := False;  // Default: respect activeByDefault
-  Result.FPCExecutable := '';  // Default: use 'fpc' from PATH
+  Result.CompilerExecutable := '';  // Default: use 'fpc' from PATH
   Result.ShowHelp := False;
   Result.ShowVersion := False;
   Result.ShowLicense := False;
   Result.Verbose := False;
   Result.ErrorMessage := '';
 
-  // Pre-pass: extract --fpc flag from anywhere in args
+  // Pre-pass: extract --compiler (or deprecated --fpc) from anywhere in args
   I := 1;
   while I <= ParamCount do
   begin
-    if ParamStr(I) = '--fpc' then
+    if ParamStr(I) = '--compiler' then
     begin
       if I < ParamCount then
-        Result.FPCExecutable := ParamStr(I + 1);
+        Result.CompilerExecutable := ParamStr(I + 1);
       Break;
+    end
+    else if (ParamStr(I) = '--fpc') and (Result.CompilerExecutable = '') then
+    begin
+      if I < ParamCount then
+        Result.CompilerExecutable := ParamStr(I + 1);
     end;
     Inc(I);
   end;
@@ -212,16 +217,28 @@ begin
     begin
       Result.ForceAllModules := True;
     end
-    // FPC executable flag
-    else if (Arg = '--fpc') then
+    // Compiler executable flag
+    else if (Arg = '--compiler') then
     begin
       Inc(I);
       if I > ParamCount then
       begin
-        Result.ErrorMessage := 'Option ' + Arg + ' requires a path to the FPC executable';
+        Result.ErrorMessage := 'Option ' + Arg + ' requires a path to a Pascal compiler executable';
         Exit;
       end;
-      Result.FPCExecutable := ParamStr(I);
+      Result.CompilerExecutable := ParamStr(I);
+    end
+    // Deprecated alias
+    else if (Arg = '--fpc') then
+    begin
+      WriteLn('[WARN] --fpc is deprecated; use --compiler instead');
+      Inc(I);
+      if I > ParamCount then
+      begin
+        Result.ErrorMessage := 'Option ' + Arg + ' requires a path to the compiler executable';
+        Exit;
+      end;
+      Result.CompilerExecutable := ParamStr(I);
     end
     else
     begin
@@ -275,7 +292,8 @@ begin
   WriteLn('  -m <module>, --module        Build specific module in multi-module project');
   WriteLn('  --all                        Build all modules, including those with activeByDefault=false');
   WriteLn('  -f <file>, --file <file>     Use alternate project file (default: project.xml)');
-  WriteLn('  --fpc <path>                 Use custom FPC executable (default: fpc)');
+  WriteLn('  --compiler <path>            Use custom Pascal compiler (default: fpc)');
+  WriteLn('  --fpc <path>                 Deprecated alias for --compiler');
   WriteLn('  -v, --verbose                Show full compiler output');
   WriteLn('  -h, --help                   Show this help message');
   WriteLn('  --version                    Show version information');
@@ -295,7 +313,8 @@ begin
   WriteLn('  pasbuild dependency-tree -m mymodule  # Show dependencies for one module');
   WriteLn('  pasbuild resolve -p unix,debug        # Output resolved build config as JSON');
   WriteLn('  pasbuild resolve -m mymodule          # Resolve specific module only');
-  WriteLn('  pasbuild compile --fpc /opt/fpc-3.3.1/bin/fpc  # Use custom FPC');
+  WriteLn('  pasbuild compile --compiler /opt/fpc-3.3.1/bin/fpc  # Use custom FPC');
+  WriteLn('  pasbuild compile --compiler releases/v0.3.0/blaise  # Use Blaise compiler');
   WriteLn('  pasbuild test                         # Run tests');
   WriteLn('  pasbuild package                      # Create release archive');
   WriteLn('  pasbuild init                         # Create new project');
@@ -310,9 +329,10 @@ begin
   WriteLn('Author: Graeme Geldenhuys');
   WriteLn;
 
-  // Show which FPC is being used and its version
-  WriteLn('FPC executable: ', TUtils.GetFPCExecutable);
-  WriteLn('FPC version detected: ', TUtils.DetectFPCVersion());
+  // Show which compiler is being used and its version
+  WriteLn('Compiler backend : ', TUtils.GetCompilerBackend.Name);
+  WriteLn('Compiler path    : ', TUtils.GetCompilerBackend.Executable);
+  WriteLn('Compiler version : ', TUtils.DetectFPCVersion());
   WriteLn;
 end;
 

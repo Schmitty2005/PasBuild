@@ -234,44 +234,43 @@ var
   I: Integer;
 begin
   CompilerObj := TJSONObject.Create;
-  CompilerObj.Add('executable', TUtils.GetFPCExecutable);
+  CompilerObj.Add('executable', TUtils.GetCompilerBackend.Executable);
+  CompilerObj.Add('compilerName', TUtils.GetCompilerBackend.Name);
 
   { Build the command line — mirrors TCompileCommand.BuildCompilerCommand }
-  CmdLine := TUtils.GetFPCExecutable + ' -Mobjfpc -O1';
+  OutputDir := TUtils.NormalizePath(AConfig.BuildConfig.OutputDirectory);
+  CmdLine := TUtils.GetCompilerBackend.BaseCommand;
 
   if AConfig.BuildConfig.MainSource <> '' then
   begin
     if AConfig.BuildConfig.ProjectType = ptLibrary then
-      CmdLine := CmdLine + ' ' + TUtils.NormalizePath(
-        AConfig.BuildConfig.OutputDirectory + '/bootstrap_program.pas')
+      CmdLine := CmdLine + ' ' + TUtils.GetCompilerBackend.SourceFlag(
+        TUtils.NormalizePath(AConfig.BuildConfig.OutputDirectory + '/bootstrap_program.pas'))
     else
-      CmdLine := CmdLine + ' ' + TUtils.NormalizePath(
-        AConfig.BuildConfig.SourceDirectory + '/' + AConfig.BuildConfig.MainSource);
+      CmdLine := CmdLine + ' ' + TUtils.GetCompilerBackend.SourceFlag(
+        TUtils.NormalizePath(AConfig.BuildConfig.SourceDirectory + '/' + AConfig.BuildConfig.MainSource));
   end;
 
-  OutputDir := TUtils.NormalizePath(AConfig.BuildConfig.OutputDirectory);
-  CmdLine := CmdLine + ' -FE' + TUtils.QuotePath(OutputDir);
-  CmdLine := CmdLine + ' -FU' + TUtils.QuotePath(OutputDir + DirectorySeparator + 'units');
-
-  if AConfig.BuildConfig.ExecutableName <> '' then
-    CmdLine := CmdLine + ' -o' + AConfig.BuildConfig.ExecutableName +
-      TUtils.GetPlatformExecutableSuffix;
+  CmdLine := CmdLine + ' ' + TUtils.GetCompilerBackend.OutputFlags(
+    OutputDir, AConfig.BuildConfig.ExecutableName + TUtils.GetPlatformExecutableSuffix);
+  CmdLine := CmdLine + ' ' + TUtils.GetCompilerBackend.UnitOutputDirFlag(
+    OutputDir + DirectorySeparator + 'units');
 
   { Unit paths }
   for I := 0 to AUnitPaths.Count - 1 do
-    CmdLine := CmdLine + ' -Fu' + TUtils.QuotePath(AUnitPaths[I]);
+    CmdLine := CmdLine + ' ' + TUtils.GetCompilerBackend.UnitPathFlag(AUnitPaths[I]);
 
   { Include paths }
   for I := 0 to AIncludePaths.Count - 1 do
-    CmdLine := CmdLine + ' -Fi' + TUtils.QuotePath(AIncludePaths[I]);
+    CmdLine := CmdLine + ' ' + TUtils.GetCompilerBackend.IncludePathFlag(AIncludePaths[I]);
 
   { Global defines }
   for I := 0 to AConfig.BuildConfig.Defines.Count - 1 do
-    CmdLine := CmdLine + ' -d' + AConfig.BuildConfig.Defines[I];
+    CmdLine := CmdLine + ' ' + TUtils.GetCompilerBackend.DefineFlag(AConfig.BuildConfig.Defines[I]);
 
   { Global compiler options }
   for I := 0 to AConfig.BuildConfig.CompilerOptions.Count - 1 do
-    CmdLine := CmdLine + ' ' + AConfig.BuildConfig.CompilerOptions[I];
+    CmdLine := CmdLine + ' ' + TUtils.GetCompilerBackend.ExtraOptionFlag(AConfig.BuildConfig.CompilerOptions[I]);
 
   { Profile-specific defines and options }
   if Assigned(ProfileIds) then

@@ -46,6 +46,12 @@ type
 
 implementation
 
+procedure AppendFlag(var ACmd: string; const AFlag: string);
+begin
+  if AFlag <> '' then
+    ACmd := ACmd + ' ' + AFlag;
+end;
+
 { TTestCompileCommand }
 
 function TTestCompileCommand.GetName: string;
@@ -135,40 +141,35 @@ var
   I: Integer;
 begin
   // Base command with default flags
-  Result := TUtils.GetFPCExecutable + ' -Mobjfpc -O1';
-
-  // Test source file path
-  Result := Result + ' ' + ATestSourcePath;
-
-  // Output directory for test executable
   OutputDir := TUtils.NormalizePath(Config.BuildConfig.OutputDirectory);
-  Result := Result + ' -FE' + TUtils.QuotePath(OutputDir);
+  TestBaseDir := TUtils.NormalizePath(Config.TestConfig.SourceDirectory);
 
-  // Test unit output directory (separate from main units)
-  Result := Result + ' -FU' + TUtils.QuotePath(OutputDir + DirectorySeparator + 'test-units');
-
-  // Test executable name
-  Result := Result + ' -oTestRunner' + TUtils.GetPlatformExecutableSuffix;
+  Result := TUtils.GetCompilerBackend.BaseCommand;
+  AppendFlag(Result, TUtils.GetCompilerBackend.SourceFlag(ATestSourcePath));
+  AppendFlag(Result, TUtils.GetCompilerBackend.OutputFlags(
+    OutputDir, 'TestRunner' + TUtils.GetPlatformExecutableSuffix));
+  AppendFlag(Result, TUtils.GetCompilerBackend.UnitOutputDirFlag(
+    OutputDir + DirectorySeparator + 'test-units'));
 
   // Link to already-compiled main units (compiled by 'compile' goal)
-  Result := Result + ' -Fu' + TUtils.QuotePath(OutputDir + DirectorySeparator + 'units');
+  AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(
+    OutputDir + DirectorySeparator + 'units'));
 
   // Add resolved module dependency paths (same paths used by the compile goal)
   for I := 0 to Config.BuildConfig.ResolvedModulePaths.Count - 1 do
   begin
     UnitPath := TUtils.NormalizePath(Config.BuildConfig.ResolvedModulePaths[I]);
-    Result := Result + ' -Fu' + TUtils.QuotePath(UnitPath);
+    AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(UnitPath));
   end;
 
   // Add test source directory and its subdirectories
-  TestBaseDir := TUtils.NormalizePath(Config.TestConfig.SourceDirectory);
-  Result := Result + ' -Fu' + TUtils.QuotePath(TestBaseDir);
+  AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(TestBaseDir));
 
   // Scan and add test subdirectories (unit paths)
   UnitPaths := TUtils.ScanForUnitPaths(TestBaseDir);
   try
     for UnitPath in UnitPaths do
-      Result := Result + ' -Fu' + TUtils.QuotePath(UnitPath);
+      AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(UnitPath));
   finally
     UnitPaths.Free;
   end;
@@ -177,7 +178,7 @@ begin
   IncludePaths := TUtils.ScanForIncludePaths(TestBaseDir);
   try
     for IncludePath in IncludePaths do
-      Result := Result + ' -Fi' + TUtils.QuotePath(IncludePath);
+      AppendFlag(Result, TUtils.GetCompilerBackend.IncludePathFlag(IncludePath));
   finally
     IncludePaths.Free;
   end;
@@ -201,7 +202,7 @@ begin
 
     // Add defines to compiler command
     for Define in ActiveDefines do
-      Result := Result + ' -d' + Define;
+      AppendFlag(Result, TUtils.GetCompilerBackend.DefineFlag(Define));
 
   finally
     ActiveDefines.Free;
@@ -209,7 +210,7 @@ begin
 
   // Add global compiler options
   for Option in Config.BuildConfig.CompilerOptions do
-    Result := Result + ' ' + Option;
+    AppendFlag(Result, TUtils.GetCompilerBackend.ExtraOptionFlag(Option));
 
   // Add profile-specific compiler options
   for ProfileId in ProfileIds do
@@ -218,7 +219,7 @@ begin
     if Assigned(Profile) then
     begin
       for Option in Profile.CompilerOptions do
-        Result := Result + ' ' + Option;
+        AppendFlag(Result, TUtils.GetCompilerBackend.ExtraOptionFlag(Option));
     end;
   end;
 end;

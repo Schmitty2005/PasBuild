@@ -35,7 +35,14 @@ type
 implementation
 
 uses
-  PasBuild.Command.ProcessResources;
+  PasBuild.Command.ProcessResources,
+  PasBuild.Compiler.Backend;
+
+procedure AppendFlag(var ACmd: string; const AFlag: string);
+begin
+  if AFlag <> '' then
+    ACmd := ACmd + ' ' + AFlag;
+end;
 
 { TCompileCommand }
 
@@ -53,24 +60,20 @@ var
   ConditionalPath: TConditionalPath;
   BasePath, s: string;
   I: Integer;
+  Backend: TCompilerBackend;
 begin
-  // Base command with default flags
-  Result := TUtils.GetFPCExecutable + ' -Mobjfpc -O1';
+  Backend := TUtils.GetCompilerBackend;
 
-  // Source file path (passed as parameter)
-  Result := Result + ' ' + ASourcePath;
-
-  // Output directory
   OutputDir := TUtils.NormalizePath(Config.BuildConfig.OutputDirectory);
-  Result := Result + ' -FE' + TUtils.QuotePath(OutputDir);
-
-  // Unit output directory
-  Result := Result + ' -FU' + TUtils.QuotePath(OutputDir + DirectorySeparator + 'units');
-
-  // Executable name
   ExeName := Config.BuildConfig.ExecutableName;
   if ExeName <> '' then
-    Result := Result + ' -o' + ExeName + TUtils.GetPlatformExecutableSuffix;
+    ExeName := ExeName + TUtils.GetPlatformExecutableSuffix;
+
+  Result := Backend.BaseCommand;
+  AppendFlag(Result, Backend.SourceFlag(ASourcePath));
+  AppendFlag(Result, Backend.OutputFlags(OutputDir, ExeName));
+  AppendFlag(Result, Backend.UnitOutputDirFlag(
+    OutputDir + DirectorySeparator + 'units'));
 
   // Collect all active defines (global + profile)
   ActiveDefines := TStringList.Create;
@@ -98,8 +101,7 @@ begin
     BasePath := TUtils.NormalizePath(Config.BuildConfig.SourceDirectory);
 
     if not Config.BuildConfig.ManualUnitPaths then
-      // Always add the base source directory first
-      Result := Result + ' -Fu' + TUtils.QuotePath(BasePath);
+      AppendFlag(Result, Backend.UnitPathFlag(BasePath));
 
     if Config.BuildConfig.ManualUnitPaths then
     begin
@@ -118,7 +120,7 @@ begin
         end;
 
         for UnitPath in UnitPaths do
-          Result := Result + ' -Fu' + TUtils.QuotePath(UnitPath);
+          AppendFlag(Result, Backend.UnitPathFlag(UnitPath));
       finally
         UnitPaths.Free;
       end;
@@ -151,7 +153,7 @@ begin
 
       try
         for UnitPath in UnitPaths do
-          Result := Result + ' -Fu' + TUtils.QuotePath(UnitPath);
+          AppendFlag(Result, Backend.UnitPathFlag(UnitPath));
       finally
         UnitPaths.Free;
       end;
@@ -161,12 +163,12 @@ begin
     for I := 0 to Config.BuildConfig.ResolvedModulePaths.Count - 1 do
     begin
       UnitPath := TUtils.NormalizePath(Config.BuildConfig.ResolvedModulePaths[I]);
-      Result := Result + ' -Fu' + TUtils.QuotePath(UnitPath);
+      AppendFlag(Result, Backend.UnitPathFlag(UnitPath));
     end;
 
-    // Add include search paths (-Fi)
+    // Add include search paths
     // Always add output directory first (for filtered resource includes like version.inc)
-    Result := Result + ' -Fi' + TUtils.QuotePath(OutputDir);
+    AppendFlag(Result, Backend.IncludePathFlag(OutputDir));
 
     // Check all unit paths (both base and subdirs) for *.inc files
     IncludePaths := TStringList.Create;
@@ -213,18 +215,18 @@ begin
       end;
 
       for IncludePath in IncludePaths do
-        Result := Result + ' -Fi' + TUtils.QuotePath(IncludePath);
+        AppendFlag(Result, Backend.IncludePathFlag(IncludePath));
     finally
       IncludePaths.Free;
     end;
 
-    // Add global defines to compiler
+    // Add global defines
     for Define in Config.BuildConfig.Defines do
-      Result := Result + ' -d' + Define;
+      AppendFlag(Result, Backend.DefineFlag(Define));
 
-    // Add global compiler options (extends defaults)
+    // Add global compiler options
     for Option in Config.BuildConfig.CompilerOptions do
-      Result := Result + ' ' + Option;
+      AppendFlag(Result, Backend.ExtraOptionFlag(Option));
 
     // Add profile-specific defines and compiler options (applied in order)
     for ProfileId in ProfileIds do
@@ -232,13 +234,10 @@ begin
       Profile := Config.Profiles.FindById(ProfileId);
       if Assigned(Profile) then
       begin
-        // Profile defines
         for Define in Profile.Defines do
-          Result := Result + ' -d' + Define;
-
-        // Profile compiler options (these can override defaults and global options)
+          AppendFlag(Result, Backend.DefineFlag(Define));
         for Option in Profile.CompilerOptions do
-          Result := Result + ' ' + Option;
+          AppendFlag(Result, Backend.ExtraOptionFlag(Option));
       end;
     end;
 

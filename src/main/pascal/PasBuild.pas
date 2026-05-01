@@ -39,7 +39,8 @@ uses
   PasBuild.Repository,
   PasBuild.Dependencies,
   PasBuild.Plugin,
-  PasBuild.Utils;
+  PasBuild.Utils,
+  PasBuild.Compiler.Factory;
 
 var
   Args: TCommandLineArgs;
@@ -52,6 +53,7 @@ var
   ProjectDir, OriginalDir: string;
   PluginPath: string;
   PhaseInfo: TPluginPhaseInfo;
+  CompilerPath: string;
 
 begin
   // Parse command line arguments
@@ -63,16 +65,23 @@ begin
   if not TUtils.QuietMode then
     WriteLn('[INFO] PasBuild ', PASBUILD_VERSION, ' — Born ', PASBUILD_BUILD_DATE, '. Raised by Graeme Geldenhuys.');
 
-  // Resolve custom FPC executable (CLI flag > env var > default 'fpc')
-  if Args.FPCExecutable <> '' then
+  // Resolve compiler executable and instantiate backend via factory.
+  // Precedence: --compiler flag > PASBUILD_COMPILER env > PASBUILD_FPC env (deprecated) > 'fpc'
   begin
-    TUtils.SetFPCExecutable(Args.FPCExecutable);
-    TUtils.LogInfo('Using custom FPC: ' + Args.FPCExecutable);
-  end
-  else if GetEnvironmentVariable('PASBUILD_FPC') <> '' then
-  begin
-    TUtils.SetFPCExecutable(GetEnvironmentVariable('PASBUILD_FPC'));
-    TUtils.LogInfo('Using FPC from PASBUILD_FPC: ' + GetEnvironmentVariable('PASBUILD_FPC'));
+    if Args.CompilerExecutable <> '' then
+      CompilerPath := Args.CompilerExecutable
+    else if GetEnvironmentVariable('PASBUILD_COMPILER') <> '' then
+      CompilerPath := GetEnvironmentVariable('PASBUILD_COMPILER')
+    else if GetEnvironmentVariable('PASBUILD_FPC') <> '' then
+    begin
+      TUtils.LogWarning('PASBUILD_FPC is deprecated; use PASBUILD_COMPILER instead');
+      CompilerPath := GetEnvironmentVariable('PASBUILD_FPC');
+    end
+    else
+      CompilerPath := 'fpc';
+    TUtils.SetCompilerBackend(TCompilerBackendFactory.CreateFromExecutable(CompilerPath));
+    TUtils.LogInfo('Compiler: ' + TUtils.GetCompilerBackend.Name
+      + ' (' + CompilerPath + ')');
   end;
 
   // Handle help

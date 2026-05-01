@@ -16,7 +16,8 @@ interface
 
 uses
   Classes, SysUtils, StrUtils, Process,
-  PasBuild.Types;
+  PasBuild.Types,
+  PasBuild.Compiler.Backend;
 
 type
   { Utility functions for file operations and process execution }
@@ -24,9 +25,13 @@ type
   private
     class var FFPCExecutable: string;
     class var FQuietMode: Boolean;
+    class var FBackend: TCompilerBackend;
   public
     class property QuietMode: Boolean read FQuietMode write FQuietMode;
-    { FPC executable configuration }
+    { Compiler backend — set once at startup by PasBuild.pas via the factory. }
+    class procedure SetCompilerBackend(ABackend: TCompilerBackend);
+    class function GetCompilerBackend: TCompilerBackend;
+    { Legacy accessors — delegate to the active backend. }
     class procedure SetFPCExecutable(const APath: string);
     class function GetFPCExecutable: string;
     { Path normalization }
@@ -50,7 +55,7 @@ type
     class function ExecuteProcessWithCapture(const ACommand: string; out AOutput: string): Integer;
     class function ExecuteProcessWithLog(const ACommand: string; const ALogFile: string; AShowErrors: Boolean): Integer;
 
-    { FPC detection }
+    { Compiler detection — delegate to the active backend. }
     class function DetectFPCVersion: string;
     class function DetectTargetCPU: string;
     class function DetectTargetOS: string;
@@ -87,6 +92,19 @@ procedure RecursiveScanDirs(const ADir: string; AList: TStringList); forward;
 
 { TUtils }
 
+class procedure TUtils.SetCompilerBackend(ABackend: TCompilerBackend);
+begin
+  FreeAndNil(FBackend);
+  FBackend := ABackend;
+end;
+
+class function TUtils.GetCompilerBackend: TCompilerBackend;
+begin
+  if FBackend = nil then
+    raise Exception.Create('No compiler backend configured');
+  Result := FBackend;
+end;
+
 class procedure TUtils.SetFPCExecutable(const APath: string);
 begin
   FFPCExecutable := APath;
@@ -94,7 +112,9 @@ end;
 
 class function TUtils.GetFPCExecutable: string;
 begin
-  if FFPCExecutable <> '' then
+  if FBackend <> nil then
+    Result := FBackend.Executable
+  else if FFPCExecutable <> '' then
     Result := FFPCExecutable
   else
     Result := 'fpc';
@@ -450,41 +470,18 @@ begin
 end;
 
 class function TUtils.DetectFPCVersion: string;
-var
-  Output: string;
-  ExitCode: Integer;
 begin
-  Result := 'Unknown';
-
-  ExitCode := ExecuteProcessWithCapture(GetFPCExecutable + ' -iV', Output);
-  if ExitCode = 0 then
-    Result := Trim(Output)
-  else
-    Result := 'Not found';
+  Result := GetCompilerBackend.GetVersion;
 end;
 
 class function TUtils.DetectTargetCPU: string;
-var
-  Output: string;
-  ExitCode: Integer;
 begin
-  Result := 'Unknown';
-
-  ExitCode := ExecuteProcessWithCapture(GetFPCExecutable + ' -iTP', Output);
-  if ExitCode = 0 then
-    Result := Trim(Output);
+  Result := GetCompilerBackend.GetTargetCPU;
 end;
 
 class function TUtils.DetectTargetOS: string;
-var
-  Output: string;
-  ExitCode: Integer;
 begin
-  Result := 'Unknown';
-
-  ExitCode := ExecuteProcessWithCapture(GetFPCExecutable + ' -iTO', Output);
-  if ExitCode = 0 then
-    Result := Trim(Output);
+  Result := GetCompilerBackend.GetTargetOS;
 end;
 
 class function TUtils.GetTargetTriplet: string;
@@ -498,12 +495,8 @@ begin
 end;
 
 class function TUtils.IsFPCAvailable: Boolean;
-var
-  ExitCode: Integer;
-  Output: string;
 begin
-  ExitCode := ExecuteProcessWithCapture(GetFPCExecutable + ' -iV', Output);
-  Result := (ExitCode = 0);
+  Result := GetCompilerBackend.GetVersion <> '';
 end;
 
 class function TUtils.QuotePath(const APath: string): string;
