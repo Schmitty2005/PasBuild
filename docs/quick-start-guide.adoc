@@ -980,16 +980,51 @@ Add a `<resources>` section to your `project.xml`:
 
 === Variable Filtering
 
-When `<filtering>` is set to `true`, PasBuild will substitute project metadata variables in your resource files.
+When `<filtering>` is set to `true`, PasBuild will substitute variables in your resource files before copying them to the target directory.
 
-**Supported variables:**
+**Project variables** (from `project.xml`):
 
-* `${project.name}` - Project name from project.xml
+* `${project.name}` - Project name
 * `${project.version}` - Project version
 * `${project.author}` - Project author
 * `${project.license}` - Project license
 
-**Example resource file** (`src/main/resources/version.txt`):
+**Build-time variables** (resolved at process-resources time, compiler-agnostic):
+
+* `${build.date}` - Current date in ISO-8601 format (`yyyy-mm-dd`)
+* `${build.time}` - Current time in `hh:mm:ss` format
+* `${build.timestamp}` - Combined ISO-8601 datetime (`yyyy-mm-ddThh:mm:ss`)
+
+**Example resource file** (`src/main/resources/version.inc`):
+
+[source]
+----
+'${project.version}'
+----
+
+**Example with build metadata** (`src/main/resources/build-info.inc`):
+
+[source]
+----
+'Built ${build.date} at ${build.time}'
+----
+
+After processing, `target/build-info.inc` will contain something like:
+
+[source]
+----
+'Built 2026-05-01 at 14:30:45'
+----
+
+Which can then be used in Pascal source as:
+
+[source,pascal]
+----
+const
+  BUILD_INFO = {$I build-info.inc};
+----
+
+**With filtering enabled** and `<name>MyApp</name>`, `<version>1.0.0</version>` in project.xml, a file containing all tokens:
 
 [source]
 ----
@@ -997,9 +1032,8 @@ Application: ${project.name}
 Version: ${project.version}
 Author: ${project.author}
 License: ${project.license}
+Built: ${build.date}
 ----
-
-**With filtering enabled** and `<name>MyApp</name>`, `<version>1.0.0</version>` in project.xml:
 
 After processing, `target/version.txt` will contain:
 
@@ -1009,15 +1043,15 @@ Application: MyApp
 Version: 1.0.0
 Author: Your Name
 License: BSD-3-Clause
+Built: 2026-05-01
 ----
 
 **Use cases for filtering:**
 
-* Version manifests
+* Version and build-date include files for Pascal `{$I}` directives
+* Version manifests and about dialog content
 * Configuration templates with project metadata
-* About dialog content
-* Database migration scripts with version numbers
-* Help files with current version information
+* Help files with current version and build information
 
 === Test Resources
 

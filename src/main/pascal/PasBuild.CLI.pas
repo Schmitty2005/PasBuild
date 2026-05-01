@@ -19,7 +19,7 @@ uses
 
 const
   PASBUILD_VERSION = {$I version.inc};
-  PASBUILD_BUILD_DATE = {$I %DATE%};
+  PASBUILD_BUILD_DATE = {$I build-date.inc};
 
 type
   { Valid build goals }
