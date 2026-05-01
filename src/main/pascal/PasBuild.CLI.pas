@@ -324,7 +324,7 @@ end;
 class procedure TArgumentParser.ShowVersion;
 begin
   WriteLn('PasBuild version ', PASBUILD_VERSION);
-  WriteLn('Build automation tool for Free Pascal projects');
+  WriteLn('Build automation tool for Pascal projects');
   WriteLn('Built: ', PASBUILD_BUILD_DATE);
   WriteLn('Author: Graeme Geldenhuys');
   WriteLn;
