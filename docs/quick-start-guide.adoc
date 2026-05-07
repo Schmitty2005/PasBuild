@@ -818,12 +818,12 @@ src/main/pascal/
 
 **How it works:**
 
-1. PasBuild auto-scans all directories (core/, etc.)
-2. For conditional paths:
+. PasBuild auto-scans all directories (core/, etc.)
+. For conditional paths:
    - On Linux: includes `core/x11/`, excludes `core/gdi/` and `core/cocoa/`
    - On Windows: includes `core/gdi/`, excludes `core/x11/` and `core/cocoa/`
    - On macOS: includes `core/cocoa/`, excludes `core/x11/` and `core/gdi/`
-3. Non-conditional directories always included
+. Non-conditional directories always included
 
 **Supported platform conditions:**
 
@@ -1061,7 +1061,6 @@ Test resources work the same way as main resources but are configured in the `<t
 ----
 <test>
   <testSource>TestRunner.pas</testSource>
-  <framework>auto</framework>
 
   <!-- Test resource configuration -->
   <resources>
@@ -1125,10 +1124,10 @@ pasbuild process-resources
 
 **What it does:**
 
-1. Checks if `src/main/resources` exists (skips if not found)
-2. Recursively copies all files preserving directory structure
-3. If filtering is enabled, substitutes project variables
-4. Reports files copied/filtered
+. Checks if `src/main/resources` exists (skips if not found)
+. Recursively copies all files preserving directory structure
+. If filtering is enabled, substitutes project variables
+. Reports files copied/filtered
 
 **Note:** This goal is automatically run by the `compile` goal.
 
@@ -1173,10 +1172,10 @@ pasbuild process-test-resources
 
 **What it does:**
 
-1. Checks if `src/test/resources` exists (skips if not found)
-2. Recursively copies all files preserving directory structure
-3. If filtering is enabled, substitutes project variables
-4. Reports files copied/filtered
+. Checks if `src/test/resources` exists (skips if not found)
+. Recursively copies all files preserving directory structure
+. If filtering is enabled, substitutes project variables
+. Reports files copied/filtered
 
 **Note:** This goal is automatically run by the `test-compile` goal.
 
@@ -1194,20 +1193,11 @@ pasbuild test-compile -p debug
 
 **What it does:**
 
-1. Compiles main code (via `compile` goal)
-2. Scans `src/test/pascal/` for test files
-3. Auto-detects test framework (FPCUnit or FPTest)
-4. Compiles test runner executable to `target/TestRunner`
-5. Links to already-compiled main units (Maven-style)
-6. Outputs test units to `target/test-units` (separate from main units)
-
-**Test framework auto-detection:**
-
-PasBuild automatically detects which testing framework you're using:
-
-* **FPCUnit**: Detected by presence of `fpcunit` in uses clause
-* **FPTest**: Detected by presence of `TestFramework` in uses clause
-* **Default**: Falls back to FPCUnit if no framework detected
+. Compiles main code (via `compile` goal)
+. Scans `src/test/pascal/` for test files
+. Compiles test runner executable to `target/TestRunner`
+. Links to already-compiled main units (Maven-style)
+. Outputs test units to `target/test-units` (separate from main units)
 
 === test
 
@@ -1223,10 +1213,10 @@ pasbuild test -p debug
 
 **What it does:**
 
-1. Compiles main code
-2. Compiles tests
-3. Executes test runner with configured options
-4. Reports test results
+. Compiles main code
+. Compiles tests
+. Executes test runner with configured options
+. Reports test results
 
 **Example output:**
 
@@ -1362,11 +1352,11 @@ pasbuild install
 
 **What it does:**
 
-1. Compiles the project (if not already compiled)
-2. Detects the FPC target triplet (e.g., `x86_64-linux-3.2.2`)
-3. Creates the repository directory structure
-4. Copies all `.ppu` and `.o` files from `target/units/` to the repository
-5. Generates `metadata.xml` with artifact identity and dependency information
+. Compiles the project (if not already compiled)
+. Detects the FPC target triplet (e.g., `x86_64-linux-3.2.2`)
+. Creates the repository directory structure
+. Copies all `.ppu` and `.o` files from `target/units/` to the repository
+. Generates `metadata.xml` with artifact identity and dependency information
 
 **Example:**
 
@@ -1638,9 +1628,6 @@ If `project.xml` already exists, returns error: `"Project already initialized"`
 
   <!-- Test Configuration -->
   <test>
-    <!-- Test framework: auto (default), fpcunit, or fptest -->
-    <framework>auto</framework>
-
     <!-- Test source file in src/test/pascal/ -->
     <testSource>TestRunner.pas</testSource>
 

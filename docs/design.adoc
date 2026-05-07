@@ -666,7 +666,6 @@ The following features have been implemented and are available in PasBuild:
 **Features:**
 
 * Separate `src/test/pascal/` directory support
-* Auto-detection of test framework (FPCUnit or FPTest)
 * Test runner compilation with dependency on main compilation
 * Separate test units directory (`target/test-units/`)
 * Test execution with configurable framework options
@@ -677,7 +676,6 @@ The following features have been implemented and are available in PasBuild:
 ----
 <test>
   <testSource>TestRunner.pas</testSource>
-  <framework>auto</framework>  <!-- auto, fpcunit, or fptest -->
   <frameworkOptions>
     <option>--all</option>
     <option>--format=plain</option>

@@ -22,9 +22,6 @@ type
   { Project type enumeration }
   TProjectType = (ptApplication, ptLibrary, ptPom);
 
-  { Test framework enumeration }
-  TTestFramework = (tfAuto, tfFPCUnit, tfFPTest);
-
   { Forward declarations }
   TProfile = class;
   TBuildConfig = class;
@@ -110,7 +107,6 @@ type
   { TTestConfig - Test configuration section }
   TTestConfig = class
   private
-    FFramework: TTestFramework;
     FTestSource: string;
     FSourceDirectory: string;
     FFrameworkOptions: TStringList;
@@ -118,7 +114,6 @@ type
     constructor Create;
     destructor Destroy; override;
 
-    property Framework: TTestFramework read FFramework write FFramework;
     property TestSource: string read FTestSource write FTestSource;
     property SourceDirectory: string read FSourceDirectory write FSourceDirectory;
     property FrameworkOptions: TStringList read FFrameworkOptions;
@@ -343,7 +338,6 @@ begin
   FFrameworkOptions.Duplicates := dupIgnore;
 
   // Set defaults
-  FFramework := tfAuto;  // Auto-detect by default
   FTestSource := 'TestRunner.pas';  // Common default name
   FSourceDirectory := 'src/test/pascal';  // Standard layout by default
 end;

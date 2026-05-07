@@ -27,7 +27,6 @@ type
   TTestCompileCommand = class(TBuildCommand)
   protected
     function GetName: string; override;
-    function DetectTestFramework: TTestFramework;
     function BuildTestCompilerCommand(const ATestSourcePath: string): string;
   public
     function Execute: Integer; override;
@@ -69,63 +68,6 @@ begin
   except
     Result.Free;
     raise;
-  end;
-end;
-
-function TTestCompileCommand.DetectTestFramework: TTestFramework;
-var
-  TestSourcePath: string;
-  SourceLines: TStringList;
-  FullSource: string;
-  SourceUpper: string;
-begin
-  Result := tfFPCUnit;  // Default fallback
-
-  TestSourcePath := TUtils.NormalizePath(Config.TestConfig.SourceDirectory + '/' + Config.TestConfig.TestSource);
-
-  if not FileExists(TestSourcePath) then
-  begin
-    TUtils.LogWarning('Test source not found: ' + TestSourcePath + ', defaulting to FPCUnit');
-    Exit;
-  end;
-
-  // Read entire test source file as one string for multi-line uses clause support
-  SourceLines := TStringList.Create;
-  try
-    try
-      SourceLines.LoadFromFile(TestSourcePath);
-      FullSource := SourceLines.Text;
-      SourceUpper := UpperCase(FullSource);
-
-      // Check for FPCUnit indicator: 'fpcunit' anywhere in the file
-      // (typically in uses clause, but checking whole file is safer)
-      if Pos('FPCUNIT', SourceUpper) > 0 then
-      begin
-        TUtils.LogInfo('Auto-detected test framework: FPCUnit');
-        Result := tfFPCUnit;
-        Exit;
-      end;
-
-      // Check for FPTest indicator: 'TestFramework' unit
-      if Pos('TESTFRAMEWORK', SourceUpper) > 0 then
-      begin
-        TUtils.LogInfo('Auto-detected test framework: FPTest');
-        Result := tfFPTest;
-        Exit;
-      end;
-
-      // No framework detected, default to FPCUnit
-      TUtils.LogWarning('Could not auto-detect test framework, defaulting to FPCUnit');
-
-    except
-      on E: Exception do
-      begin
-        TUtils.LogWarning('Error reading test source: ' + E.Message + ', defaulting to FPCUnit');
-      end;
-    end;
-
-  finally
-    SourceLines.Free;
   end;
 end;
 
@@ -228,7 +170,6 @@ function TTestCompileCommand.Execute: Integer;
 var
   TestSourcePath, OutputDir: string;
   CompileCommand: string;
-  DetectedFramework: TTestFramework;
   StatusDir, LogFile: string;
   SourceFiles, IncludeFiles: TStringList;
 begin
@@ -243,18 +184,6 @@ begin
     TUtils.LogInfo('No test directory found (' + Config.TestConfig.SourceDirectory + '/), skipping');
     Result := 0;
     Exit;
-  end;
-
-  // Determine which framework to use
-  if Config.TestConfig.Framework = tfAuto then
-    DetectedFramework := DetectTestFramework
-  else
-    DetectedFramework := Config.TestConfig.Framework;
-
-  // Log which framework is being used
-  case DetectedFramework of
-    tfFPCUnit: TUtils.LogInfo('Using test framework: FPCUnit');
-    tfFPTest: TUtils.LogInfo('Using test framework: FPTest');
   end;
 
   // Create output directories

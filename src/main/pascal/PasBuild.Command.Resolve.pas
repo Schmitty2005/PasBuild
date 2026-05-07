@@ -28,7 +28,6 @@ type
     FRegistry: TModuleRegistry;   { nil for single-module projects }
     FSelectedModule: string;      { '' = all modules }
     function ProjectTypeToString(AType: TProjectType): string;
-    function TestFrameworkToString(AFramework: TTestFramework): string;
     function CollectActiveDefines(AConfig: TProjectConfig): TStringList;
     function CollectUnitPaths(AConfig: TProjectConfig;
       AActiveDefines: TStringList): TStringList;
@@ -98,15 +97,6 @@ begin
     ptLibrary:     Result := 'library';
     ptPom:         Result := 'pom';
     else           Result := 'unknown';
-  end;
-end;
-
-function TResolveCommand.TestFrameworkToString(AFramework: TTestFramework): string;
-begin
-  case AFramework of
-    tfFPCUnit: Result := 'fpcunit';
-    tfFPTest:  Result := 'fptest';
-    else       Result := 'auto';
   end;
 end;
 
@@ -390,7 +380,6 @@ begin
   if AConfig.TestConfig.TestSource <> '' then
   begin
     TestObj := TJSONObject.Create;
-    TestObj.Add('framework', TestFrameworkToString(AConfig.TestConfig.Framework));
     TestObj.Add('testSource', AConfig.TestConfig.TestSource);
     AResult.Add('test', TestObj);
   end;

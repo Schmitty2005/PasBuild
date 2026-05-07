@@ -241,23 +241,11 @@ end;
 
 class procedure TConfigLoader.ParseTestSection(ATestNode: TDOMNode; AConfig: TProjectConfig);
 var
-  FrameworkStr: string;
   OptionsNode, OptionNode: TDOMNode;
   I: Integer;
 begin
   if not Assigned(ATestNode) then
     Exit; // Test section is optional
-
-  // Parse framework (optional, defaults to auto)
-  FrameworkStr := LowerCase(GetNodeText(ATestNode, 'framework', 'auto'));
-  if FrameworkStr = 'fpcunit' then
-    AConfig.TestConfig.Framework := tfFPCUnit
-  else if FrameworkStr = 'fptest' then
-    AConfig.TestConfig.Framework := tfFPTest
-  else if FrameworkStr = 'auto' then
-    AConfig.TestConfig.Framework := tfAuto
-  else
-    raise EProjectConfigError.CreateFmt('Invalid test framework: %s (expected: auto, fpcunit, or fptest)', [FrameworkStr]);
 
   // Parse test source (optional)
   AConfig.TestConfig.TestSource := GetNodeText(ATestNode, 'testSource', 'TestRunner.pas');

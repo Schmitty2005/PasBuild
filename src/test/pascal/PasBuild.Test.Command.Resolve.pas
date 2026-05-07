@@ -448,7 +448,6 @@ begin
   try
     Config.Name := 'test-app';
     Config.BuildConfig.ProjectType := ptApplication;
-    Config.TestConfig.Framework := tfFPCUnit;
     Config.TestConfig.TestSource := 'TestRunner.pas';
 
     Command := TTestableResolveCommand.Create(Config, nil);
@@ -457,7 +456,6 @@ begin
       try
         AssertTrue('Should have test section', JSON.IndexOfName('test') >= 0);
         TestObj := JSON.Objects['test'];
-        AssertEquals('Test framework', 'fpcunit', TestObj.Strings['framework']);
         AssertEquals('Test source', 'TestRunner.pas', TestObj.Strings['testSource']);
       finally
         JSON.Free;

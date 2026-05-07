@@ -13,7 +13,6 @@
   </build>
 
   <test>
-    <framework>auto</framework>
     <testSource>TestRunner.pas</testSource>
     <frameworkOptions>
       <option>--all --format=plain</option>

@@ -133,7 +133,6 @@ begin
             '  </build>' + LineEnding +
             '' + LineEnding +
             '  <test>' + LineEnding +
-            '    <framework>auto</framework>' + LineEnding +
             '    <testSource>TestRunner.pas</testSource>' + LineEnding +
             '    <frameworkOptions>' + LineEnding +
             '      <option>--all --format=plain</option>' + LineEnding +
@@ -408,7 +407,6 @@ begin
             '  </build>' + LineEnding +
             '' + LineEnding +
             '  <test>' + LineEnding +
-            '    <framework>auto</framework>' + LineEnding +
             '    <testSource>TestRunner.pas</testSource>' + LineEnding +
             '    <frameworkOptions>' + LineEnding +
             '      <option>--all --format=plain</option>' + LineEnding +
