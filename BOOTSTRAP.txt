@@ -42,10 +42,10 @@ Bootstrap Steps
 3. Compile PasBuild using FPC directly:
 
    Linux/macOS/FreeBSD/Unix:
-     fpc -Mobjfpc -O1 -FEtarget -FUtarget/units -Fitarget -Fusrc/main/pascal src/main/pascal/PasBuild.pas
+     fpc -Mobjfpc -O1 -FEtarget -FUtarget/units -Fitarget -Fisrc/main/resources -Fusrc/main/pascal src/main/pascal/PasBuild.pas
 
    Windows:
-     fpc -Mobjfpc -O1 -FEtarget -FUtarget\units -Fitarget -Fusrc\main\pascal src\main\pascal\PasBuild.pas
+     fpc -Mobjfpc -O1 -FEtarget -FUtarget\units -Fitarget -Fisrc\main\resources -Fusrc\main\pascal src\main\pascal\PasBuild.pas
 
 
 4. Verify the build:
@@ -73,6 +73,8 @@ Troubleshooting
 - If compilation fails, check that you're in the project root directory
 - The output executable will be in the target/ directory
 - Unit files (.ppu, .o) will be in target/units/
+- Running --version on the bootstrapped binary will show "${build.date}" literally;
+  this is expected. Run step 5 to rebuild with PasBuild itself and get correct output.
 
 
 Clean Build
@@ -84,10 +86,10 @@ To clean and rebuild from scratch:
      rm -rf target
      mkdir -p target/units
      sed 's/\${project.version}/1.0.0/g' src/main/resources/version.inc > target/version.inc
-     fpc -Mobjfpc -O1 -FEtarget -FUtarget/units -Fitarget -Fusrc/main/pascal src/main/pascal/PasBuild.pas
+     fpc -Mobjfpc -O1 -FEtarget -FUtarget/units -Fitarget -Fisrc/main/resources -Fusrc/main/pascal src/main/pascal/PasBuild.pas
 
    Windows:
      rmdir /s /q target
      mkdir target\units
      echo '1.0.0' > target\version.inc
-     fpc -Mobjfpc -O1 -FEtarget -FUtarget\units -Fitarget -Fusrc\main\pascal src\main\pascal\PasBuild.pas
+     fpc -Mobjfpc -O1 -FEtarget -FUtarget\units -Fitarget -Fisrc\main\resources -Fusrc\main\pascal src\main\pascal\PasBuild.pas
