@@ -104,6 +104,15 @@ begin
     AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(UnitPath));
   end;
 
+  // Add main source directory so test code can reference compiler units directly
+  AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(
+    TUtils.NormalizePath(Config.BuildConfig.SourceDirectory)));
+
+  // Add explicit <unitPaths> entries from the build config (e.g. RTL sources)
+  for I := 0 to Config.BuildConfig.UnitPaths.Count - 1 do
+    AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(
+      TUtils.NormalizePath(Config.BuildConfig.UnitPaths[I].Path)));
+
   // Add test source directory and its subdirectories
   AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(TestBaseDir));
 
