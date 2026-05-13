@@ -80,6 +80,11 @@ begin
     end
     else
       CompilerPath := 'fpc';
+    // Expand relative paths to absolute now, before SetCurrentDir changes CWD
+    // to the module directory.  Plain names like 'fpc' (no path separator) are
+    // left unchanged so the shell can still find them via PATH.
+    if (Pos('/', CompilerPath) > 0) or (Pos('\', CompilerPath) > 0) then
+      CompilerPath := ExpandFileName(CompilerPath);
     TUtils.SetCompilerBackend(TCompilerBackendFactory.CreateFromExecutable(CompilerPath));
     TUtils.LogInfo('Compiler: ' + TUtils.GetCompilerBackend.Name
       + ' (' + CompilerPath + ')');
