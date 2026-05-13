@@ -361,7 +361,7 @@ begin
       IncludeFiles.Free;
     end;
 
-    LogFile := StatusDir + DirectorySeparator + 'fpc.log';
+    LogFile := StatusDir + DirectorySeparator + 'compiler.log';
   except
     on E: Exception do
     begin

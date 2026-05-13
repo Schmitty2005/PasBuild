@@ -783,7 +783,7 @@ The following features have been implemented and are available in PasBuild:
 **Features:**
 
 * `-v` or `--verbose` flag shows full FPC compiler output
-* Default mode: clean console with INFO/ERROR only, full log to `target/pasbuild-status/<goal>/fpc.log`
+* Default mode: clean console with INFO/ERROR only, full log to `target/pasbuild-status/<goal>/compiler.log`
 * Build status tracking: Maven-style status directories
 * Input file tracking: `inputUnits.lst`, `inputIncludeFiles.lst`
 

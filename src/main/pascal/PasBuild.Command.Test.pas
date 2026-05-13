@@ -28,6 +28,7 @@ type
   protected
     function GetName: string; override;
     function BuildTestCompilerCommand(const ATestSourcePath: string): string;
+    function GenerateSuiteRunner(const ASuiteName: string): string;
   public
     function Execute: Integer; override;
     function GetDependencies: TBuildCommandList; override;
@@ -56,6 +57,33 @@ end;
 function TTestCompileCommand.GetName: string;
 begin
   Result := 'test-compile';
+end;
+
+{ Write a minimal TestRunner program that uses only the named suite unit.
+  Returns the path to the generated file; caller must delete it after use. }
+function TTestCompileCommand.GenerateSuiteRunner(const ASuiteName: string): string;
+var
+  Lines: TStringList;
+  OutputDir: string;
+begin
+  OutputDir := TUtils.NormalizePath(Config.BuildConfig.OutputDirectory);
+  Result := OutputDir + DirectorySeparator + '__suite_runner__.pas';
+
+  Lines := TStringList.Create;
+  try
+    Lines.Add('program TestRunner;');
+    Lines.Add('{$mode objfpc}{$H+}');
+    Lines.Add('uses');
+    Lines.Add('  bcl.testing,');
+    Lines.Add('  bcl.testing.runner.text,');
+    Lines.Add('  ' + ASuiteName + ';');
+    Lines.Add('begin');
+    Lines.Add('  Halt(RunAll);');
+    Lines.Add('end.');
+    Lines.SaveToFile(Result);
+  finally
+    Lines.Free;
+  end;
 end;
 
 function TTestCompileCommand.GetDependencies: TBuildCommandList;
@@ -103,6 +131,20 @@ begin
     UnitPath := TUtils.NormalizePath(Config.BuildConfig.ResolvedModulePaths[I]);
     AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(UnitPath));
   end;
+
+  // Add main source directory so test code can reference compiler units directly
+  AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(
+    TUtils.NormalizePath(Config.BuildConfig.SourceDirectory)));
+
+  // Add explicit <unitPaths> entries from build config
+  for I := 0 to Config.BuildConfig.UnitPaths.Count - 1 do
+    AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(
+      TUtils.NormalizePath(Config.BuildConfig.UnitPaths[I].Path)));
+
+  // Add test-specific <unitPaths> (e.g. RTL sources for Blaise test builds)
+  for I := 0 to Config.TestConfig.UnitPaths.Count - 1 do
+    AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(
+      TUtils.NormalizePath(Config.TestConfig.UnitPaths[I])));
 
   // Add test source directory and its subdirectories
   AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(TestBaseDir));
@@ -172,8 +214,10 @@ var
   CompileCommand: string;
   StatusDir, LogFile: string;
   SourceFiles, IncludeFiles: TStringList;
+  GeneratedRunner: string;
 begin
   Result := 0;
+  GeneratedRunner := '';
 
   TUtils.LogInfo('Compiling tests...');
 
@@ -205,13 +249,23 @@ begin
     Exit;
   end;
 
-  // Check if test source file exists
-  TestSourcePath := TUtils.NormalizePath(Config.TestConfig.SourceDirectory + '/' + Config.TestConfig.TestSource);
-  if not FileExists(TestSourcePath) then
+  if FSuite <> '' then
   begin
-    TUtils.LogError('Test source file not found: ' + TestSourcePath);
-    Result := 1;
-    Exit;
+    // Suite filter: generate a minimal runner that uses only the named unit
+    TUtils.LogInfo('Suite filter: compiling only ' + FSuite);
+    GeneratedRunner := GenerateSuiteRunner(FSuite);
+    TestSourcePath := GeneratedRunner;
+  end
+  else
+  begin
+    // Full run: use the configured TestRunner source
+    TestSourcePath := TUtils.NormalizePath(Config.TestConfig.SourceDirectory + '/' + Config.TestConfig.TestSource);
+    if not FileExists(TestSourcePath) then
+    begin
+      TUtils.LogError('Test source file not found: ' + TestSourcePath);
+      Result := 1;
+      Exit;
+    end;
   end;
 
   // Create status directory and collect test source information
@@ -237,7 +291,7 @@ begin
       IncludeFiles.Free;
     end;
 
-    LogFile := StatusDir + DirectorySeparator + 'fpc.log';
+    LogFile := StatusDir + DirectorySeparator + 'compiler.log';
   except
     on E: Exception do
     begin
@@ -247,36 +301,14 @@ begin
     end;
   end;
 
-  // Build compiler command for tests
-  CompileCommand := BuildTestCompilerCommand(TestSourcePath);
+  try
+    // Build compiler command for tests
+    CompileCommand := BuildTestCompilerCommand(TestSourcePath);
 
-  // Execute FPC (verbose mode shows full output, quiet mode logs to file)
-  if FVerbose then
-  begin
-    // Verbose mode: Show full FPC output to console
-    TUtils.LogInfo('Build command: ' + CompileCommand);
-    WriteLn;
-    Result := TUtils.ExecuteProcess(CompileCommand, True);
-    WriteLn;
-    if Result = 0 then
-      TUtils.LogInfo('Test compilation successful')
-    else
-      TUtils.LogError('Test compilation failed with exit code: ' + IntToStr(Result));
-  end
-  else
-  begin
-    // Quiet mode: Clean console output, full output logged to file
-    if StatusDir <> '' then
+    // Execute FPC (verbose mode shows full output, quiet mode logs to file)
+    if FVerbose then
     begin
-      Result := TUtils.ExecuteProcessWithLog(CompileCommand, LogFile, True);
-      if Result = 0 then
-        TUtils.LogInfo('Test compilation successful (see ' + LogFile + ' for details)')
-      else
-        TUtils.LogError('Test compilation failed with exit code: ' + IntToStr(Result) + ' (see ' + LogFile + ' for details)');
-    end
-    else
-    begin
-      // Fallback if status directory creation failed
+      // Verbose mode: Show full FPC output to console
       TUtils.LogInfo('Build command: ' + CompileCommand);
       WriteLn;
       Result := TUtils.ExecuteProcess(CompileCommand, True);
@@ -285,7 +317,35 @@ begin
         TUtils.LogInfo('Test compilation successful')
       else
         TUtils.LogError('Test compilation failed with exit code: ' + IntToStr(Result));
+    end
+    else
+    begin
+      // Quiet mode: Clean console output, full output logged to file
+      if StatusDir <> '' then
+      begin
+        Result := TUtils.ExecuteProcessWithLog(CompileCommand, LogFile, True);
+        if Result = 0 then
+          TUtils.LogInfo('Test compilation successful (see ' + LogFile + ' for details)')
+        else
+          TUtils.LogError('Test compilation failed with exit code: ' + IntToStr(Result) + ' (see ' + LogFile + ' for details)');
+      end
+      else
+      begin
+        // Fallback if status directory creation failed
+        TUtils.LogInfo('Build command: ' + CompileCommand);
+        WriteLn;
+        Result := TUtils.ExecuteProcess(CompileCommand, True);
+        WriteLn;
+        if Result = 0 then
+          TUtils.LogInfo('Test compilation successful')
+        else
+          TUtils.LogError('Test compilation failed with exit code: ' + IntToStr(Result));
+      end;
     end;
+  finally
+    // Remove temp generated runner if we created one
+    if GeneratedRunner <> '' then
+      DeleteFile(GeneratedRunner);
   end;
 end;
 

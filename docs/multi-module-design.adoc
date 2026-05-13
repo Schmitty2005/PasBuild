@@ -881,7 +881,7 @@ ERROR: Module build failed: framework-core
   Goal: compile
   Exit code: 1
 
-Module build log: /path/to/framework-core/target/pasbuild-status/compile/fpc.log
+Module build log: /path/to/framework-core/target/pasbuild-status/compile/compiler.log
 
 Stopping reactor build. Subsequent modules not built:
   - framework-gui (depends on framework-core)
