@@ -119,7 +119,14 @@ end;
 
 function TBlaiseBackend.ExtraOptionFlag(const AOption: string): string;
 begin
-  Result := '';  { FPC-specific pass-through options are not forwarded. }
+  { Forward Blaise long options (e.g. '--backend native') verbatim so
+    project.xml <compilerOptions> can steer the Blaise compiler.
+    Single-dash options are FPC-specific (debug/release profiles) and
+    stay swallowed — Blaise does not understand them. }
+  if Copy(AOption, 1, 2) = '--' then
+    Result := AOption
+  else
+    Result := '';
 end;
 
 end.
