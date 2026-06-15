@@ -5,7 +5,7 @@
 :source-highlighter: rouge
 :icons: font
 
-A Maven-inspired build automation tool for Free Pascal projects.
+A Maven-inspired build automation tool for Pascal projects.
 
 image:https://img.shields.io/badge/FPC-3.2.2+-blue.svg[FPC Version]
 image:https://img.shields.io/badge/license-BSD--3--Clause-green.svg[License]
@@ -14,7 +14,7 @@ toc::[]
 
 == What is PasBuild?
 
-PasBuild is a command-line build tool for Free Pascal that brings Maven-like
+PasBuild is a command-line build tool for Pascal that brings Maven-like
 conventions and lifecycle management to Pascal development. It follows the
 principle of **convention over configuration** with sensible defaults,
 allowing you to override only what you need to change.
@@ -34,7 +34,7 @@ allowing you to override only what you need to change.
 **Advanced Features:**
 
 * ✅ Build profiles (debug/release with custom compiler options)
-* ✅ Multiple test frameworks (FPCUnit, FPTest) with auto-detection
+* ✅ Multiple test frameworks (FPCUnit, FPTest, Blaise) with auto-detection
 * ✅ Automatic dependency resolution between goals
 * ✅ Duplicate goal prevention
 * ✅ Fail-fast error handling
@@ -177,7 +177,7 @@ pasbuild package
 
 == License
 
-Copyright (c) 2025 Graeme Geldenhuys
+Copyright (c) 2025-2026 Graeme Geldenhuys
 
 This project is licensed under the BSD 3-Clause License - see the link:LICENSE[LICENSE] file for details.
 
