@@ -1,3 +1,6 @@
+# Local binary release archives (not tracked; see releases/ directory)
+releases/
+
 # Lazarus/FPC IDE files
 *.lps
 *.compiled
@@ -9,6 +12,7 @@ fp.dsk
 *.[oa]
 *.ppu
 *.rst
+*.s
 
 # Executables
 *.cgi
@@ -37,3 +41,4 @@ Thumbs.db
 .vscode/
 .idea/
 .ide/
+.codegraph/
