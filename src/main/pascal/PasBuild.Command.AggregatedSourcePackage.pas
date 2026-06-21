@@ -134,6 +134,21 @@ begin
         if (SearchRec.Name = '.') or (SearchRec.Name = '..') then
           Continue;
 
+        // Never bundle build output or VCS/IDE metadata. This matters when
+        // a module uses <sourceDirectory>.</sourceDirectory>, where the
+        // scan root is the module directory itself and would otherwise pull
+        // in target/ (including any previously built source archive), .git,
+        // and editor state.
+        if (SearchRec.Name = 'target') or (SearchRec.Name = '.git') or
+           (SearchRec.Name = '.hg') or (SearchRec.Name = '.svn') or
+           (SearchRec.Name = '.ide') then
+          Continue;
+
+        // project.xml is added explicitly by AddModuleToArchive; skip it here
+        // so a module-root scan (<sourceDirectory>.) does not duplicate it.
+        if SearchRec.Name = 'project.xml' then
+          Continue;
+
         SourcePath := ASourceDir + DirectorySeparator + SearchRec.Name;
         ArchivePath := AArchivePrefix + SearchRec.Name;
 
@@ -157,7 +172,7 @@ end;
 
 procedure TAggregatedSourcePackageCommand.AddModuleToArchive(AZip: TZipper; AModule: TModuleInfo; const AArchivePrefix: string);
 var
-  ProjectXmlPath, SrcDirPath, ModulePrefix, LicenseFile, ReadmeFile: string;
+  ProjectXmlPath, SrcDir, SrcDirPath, SrcArchivePrefix, ModulePrefix, LicenseFile, ReadmeFile: string;
 begin
   // Calculate module's archive path relative to aggregator
   ModulePrefix := AArchivePrefix + ExtractFileName(AModule.Path) + DirectorySeparator;
@@ -172,12 +187,30 @@ begin
   else
     TUtils.LogWarning('Module project.xml not found: ' + ProjectXmlPath);
 
-  // Add module's src/ directory recursively
-  SrcDirPath := AModule.Path + DirectorySeparator + 'src';
+  // Add the module's configured source directory recursively.
+  // The location is taken from <build><sourceDirectory> in the module's
+  // project.xml (default: src/main/pascal). The archive preserves the
+  // configured layout: a module using src/main/pascal lands at
+  // <module>/src/main/pascal/, so the package is rebuildable as-is.
+  // A value of '.' means the sources live directly in the module root,
+  // in which case there is no subpath to mirror and the files land flat
+  // under <module>/.
+  SrcDir := TUtils.NormalizePath(AModule.Config.BuildConfig.SourceDirectory);
+  if (SrcDir = '') or (SrcDir = '.') then
+  begin
+    SrcDirPath := AModule.Path;
+    SrcArchivePrefix := ModulePrefix;
+  end
+  else
+  begin
+    SrcDirPath := AModule.Path + DirectorySeparator + SrcDir;
+    SrcArchivePrefix := ModulePrefix + SrcDir + DirectorySeparator;
+  end;
+
   if DirectoryExists(SrcDirPath) then
   begin
     TUtils.LogInfo('Adding module sources: ' + SrcDirPath);
-    AddDirectoryToZip(AZip, SrcDirPath, ModulePrefix + 'src' + DirectorySeparator);
+    AddDirectoryToZip(AZip, SrcDirPath, SrcArchivePrefix);
   end
   else
     TUtils.LogWarning('Module source directory not found: ' + SrcDirPath);

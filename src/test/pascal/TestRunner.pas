@@ -29,7 +29,8 @@ uses
   PasBuild.Test.NestedAggregator,
   PasBuild.Test.Plugin,
   PasBuild.Test.Bootstrap,
-  PasBuild.Test.ProcessResources;
+  PasBuild.Test.ProcessResources,
+  PasBuild.Test.Command.SourcePackage;
 
 var
   Application: TTestRunner;
