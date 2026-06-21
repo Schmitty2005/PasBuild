@@ -99,7 +99,7 @@ end;
 
 function TBlaiseBackend.UnitOutputDirFlag(const APath: string): string;
 begin
-  Result := '';  { Blaise reads sources directly — no PPU cache directory. }
+  Result := '--unit-cache ' + APath;
 end;
 
 function TBlaiseBackend.UnitPathFlag(const APath: string): string;
