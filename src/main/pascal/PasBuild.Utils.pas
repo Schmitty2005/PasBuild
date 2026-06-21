@@ -454,7 +454,9 @@ begin
               end;
             end;
           end;
-        end;
+        end
+        else
+          Sleep(10);
       end;
 
       Result := AProcess.ExitCode;
