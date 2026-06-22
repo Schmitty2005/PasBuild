@@ -34,6 +34,7 @@ type
     SelectedModule: string;  // Module name for multi-module builds (empty = all modules)
     ForceAllModules: Boolean;  // True when --all is passed; overrides activeByDefault=false
     CompilerExecutable: string;  // Custom Pascal compiler path (empty = default 'fpc')
+    NoIncremental: Boolean;  // Disable incremental compilation (Blaise: --no-incremental; FPC: ignored)
     ShowHelp: Boolean;
     ShowVersion: Boolean;
     ShowLicense: Boolean;
@@ -110,6 +111,7 @@ begin
   Result.SelectedModule := '';  // Default: all modules
   Result.ForceAllModules := False;  // Default: respect activeByDefault
   Result.CompilerExecutable := '';  // Default: use 'fpc' from PATH
+  Result.NoIncremental := False;  // Default: let the compiler use its own default
   Result.ShowHelp := False;
   Result.ShowVersion := False;
   Result.ShowLicense := False;
@@ -217,6 +219,11 @@ begin
     begin
       Result.ForceAllModules := True;
     end
+    // Disable incremental compilation (compiler-specific; ignored by FPC)
+    else if (Arg = '--no-incremental') then
+    begin
+      Result.NoIncremental := True;
+    end
     // Compiler executable flag
     else if (Arg = '--compiler') then
     begin
@@ -291,6 +298,7 @@ begin
   WriteLn('  --profile <id>               Activate build profile (same as -p)');
   WriteLn('  -m <module>, --module        Build specific module in multi-module project');
   WriteLn('  --all                        Build all modules, including those with activeByDefault=false');
+  WriteLn('  --no-incremental             Disable incremental compilation (Blaise only; ignored by FPC)');
   WriteLn('  -f <file>, --file <file>     Use alternate project file (default: project.xml)');
   WriteLn('  --compiler <path>            Use custom Pascal compiler (default: fpc)');
   WriteLn('  --fpc <path>                 Deprecated alias for --compiler');

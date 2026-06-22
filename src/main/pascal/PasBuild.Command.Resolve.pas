@@ -245,6 +245,7 @@ begin
     OutputDir, AConfig.BuildConfig.ExecutableName + TUtils.GetPlatformExecutableSuffix);
   CmdLine := CmdLine + ' ' + TUtils.GetCompilerBackend.UnitOutputDirFlag(
     OutputDir + DirectorySeparator + 'units');
+  CmdLine := CmdLine + ' ' + TUtils.GetCompilerBackend.IncrementalFlag;
 
   { Unit paths }
   for I := 0 to AUnitPaths.Count - 1 do

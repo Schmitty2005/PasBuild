@@ -74,6 +74,7 @@ begin
   AppendFlag(Result, Backend.OutputFlags(OutputDir, ExeName));
   AppendFlag(Result, Backend.UnitOutputDirFlag(
     OutputDir + DirectorySeparator + 'units'));
+  AppendFlag(Result, Backend.IncrementalFlag);
 
   // Collect all active defines (global + profile)
   ActiveDefines := TStringList.Create;

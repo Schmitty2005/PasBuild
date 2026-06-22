@@ -86,6 +86,7 @@ begin
     if (Pos('/', CompilerPath) > 0) or (Pos('\', CompilerPath) > 0) then
       CompilerPath := ExpandFileName(CompilerPath);
     TUtils.SetCompilerBackend(TCompilerBackendFactory.CreateFromExecutable(CompilerPath));
+    TUtils.GetCompilerBackend.NoIncremental := Args.NoIncremental;
     TUtils.LogInfo('Compiler: ' + TUtils.GetCompilerBackend.Name
       + ' (' + CompilerPath + ')');
   end;

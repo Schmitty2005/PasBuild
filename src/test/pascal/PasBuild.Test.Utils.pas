@@ -20,6 +20,7 @@ uses
   PasBuild.Utils,
   PasBuild.Compiler.Backend,
   PasBuild.Compiler.FPC,
+  PasBuild.Compiler.Blaise,
   PasBuild.Compiler.Factory;
 
 type
@@ -77,6 +78,16 @@ type
     procedure TestGetPackagePlatformSuffixTwoComponents;
     procedure TestGetPackagePlatformSuffixNoFPCVersion;
     procedure TestGetPackagePlatformSuffixMatchesTriplet;
+  end;
+
+  { Test Blaise backend --no-incremental handling }
+  TTestBlaiseIncremental = class(TTestCase)
+  published
+    procedure TestDefaultEmitsUnitCache;
+    procedure TestDefaultNoIncrementalFlag;
+    procedure TestNoIncrementalSuppressesUnitCache;
+    procedure TestNoIncrementalEmitsFlag;
+    procedure TestFPCIgnoresNoIncremental;
   end;
 
 implementation
@@ -415,11 +426,79 @@ begin
     'A &amp;&amp; B', TUtils.XmlEscapeText('A && B'));
 end;
 
+{ TTestBlaiseIncremental }
+
+procedure TTestBlaiseIncremental.TestDefaultEmitsUnitCache;
+var
+  Backend: TBlaiseBackend;
+begin
+  Backend := TBlaiseBackend.Create('blaise');
+  try
+    AssertEquals('--unit-cache /tmp/units',
+      Backend.UnitOutputDirFlag('/tmp/units'));
+  finally
+    Backend.Free;
+  end;
+end;
+
+procedure TTestBlaiseIncremental.TestDefaultNoIncrementalFlag;
+var
+  Backend: TBlaiseBackend;
+begin
+  Backend := TBlaiseBackend.Create('blaise');
+  try
+    AssertEquals('', Backend.IncrementalFlag);
+  finally
+    Backend.Free;
+  end;
+end;
+
+procedure TTestBlaiseIncremental.TestNoIncrementalSuppressesUnitCache;
+var
+  Backend: TBlaiseBackend;
+begin
+  Backend := TBlaiseBackend.Create('blaise');
+  try
+    Backend.NoIncremental := True;
+    AssertEquals('', Backend.UnitOutputDirFlag('/tmp/units'));
+  finally
+    Backend.Free;
+  end;
+end;
+
+procedure TTestBlaiseIncremental.TestNoIncrementalEmitsFlag;
+var
+  Backend: TBlaiseBackend;
+begin
+  Backend := TBlaiseBackend.Create('blaise');
+  try
+    Backend.NoIncremental := True;
+    AssertEquals('--no-incremental', Backend.IncrementalFlag);
+  finally
+    Backend.Free;
+  end;
+end;
+
+procedure TTestBlaiseIncremental.TestFPCIgnoresNoIncremental;
+var
+  Backend: TFPCBackend;
+begin
+  { FPC has no incremental concept — the flag is a no-op regardless. }
+  Backend := TFPCBackend.Create('fpc');
+  try
+    Backend.NoIncremental := True;
+    AssertEquals('', Backend.IncrementalFlag);
+  finally
+    Backend.Free;
+  end;
+end;
+
 initialization
   RegisterTest(TTestQuotePath);
   RegisterTest(TTestFPCExecutable);
   RegisterTest(TTestCLIFPCExecutable);
   RegisterTest(TTestXmlEscapeText);
   RegisterTest(TTestFPCTargetDetection);
+  RegisterTest(TTestBlaiseIncremental);
 
 end.

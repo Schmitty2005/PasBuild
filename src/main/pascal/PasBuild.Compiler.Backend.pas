@@ -25,9 +25,17 @@ type
   TCompilerBackend = class
   private
     FExecutable: string;
+    FNoIncremental: Boolean;
   public
     constructor Create(const AExecutable: string);
     property Executable: string read FExecutable;
+
+    { Set from the --no-incremental CLI flag.  Backends that have no notion of
+      incremental compilation (e.g. FPC) ignore it. }
+    property NoIncremental: Boolean read FNoIncremental write FNoIncremental;
+
+    { Flag emitted when NoIncremental is set; '' when not applicable. }
+    function IncrementalFlag: string; virtual;
 
     { Display name reported in version output and log messages. }
     function Name: string; virtual; abstract;
@@ -72,6 +80,13 @@ constructor TCompilerBackend.Create(const AExecutable: string);
 begin
   inherited Create;
   FExecutable := AExecutable;
+end;
+
+function TCompilerBackend.IncrementalFlag: string;
+begin
+  { Default: the backend has no incremental concept, so --no-incremental is a
+    no-op.  Blaise overrides this. }
+  Result := '';
 end;
 
 end.

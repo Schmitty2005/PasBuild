@@ -32,6 +32,7 @@ type
     function IncludePathFlag(const APath: string): string; override;
     function DefineFlag(const ADefine: string): string; override;
     function ExtraOptionFlag(const AOption: string): string; override;
+    function IncrementalFlag: string; override;
   end;
 
 implementation
@@ -99,7 +100,12 @@ end;
 
 function TBlaiseBackend.UnitOutputDirFlag(const APath: string): string;
 begin
-  Result := '--unit-cache ' + APath;
+  { No incremental build means no *.o cache is produced, so the cache path is
+    meaningless — suppress it. }
+  if NoIncremental then
+    Result := ''
+  else
+    Result := '--unit-cache ' + APath;
 end;
 
 function TBlaiseBackend.UnitPathFlag(const APath: string): string;
@@ -125,6 +131,16 @@ begin
     stay swallowed — Blaise does not understand them. }
   if Copy(AOption, 1, 2) = '--' then
     Result := AOption
+  else
+    Result := '';
+end;
+
+function TBlaiseBackend.IncrementalFlag: string;
+begin
+  { Blaise defaults to incremental builds (per-unit *.o files).  When the user
+    opts out, emit --no-incremental so no *.o files are generated. }
+  if NoIncremental then
+    Result := '--no-incremental'
   else
     Result := '';
 end;

@@ -92,6 +92,7 @@ begin
     OutputDir, 'TestRunner' + TUtils.GetPlatformExecutableSuffix));
   AppendFlag(Result, TUtils.GetCompilerBackend.UnitOutputDirFlag(
     OutputDir + DirectorySeparator + 'test-units'));
+  AppendFlag(Result, TUtils.GetCompilerBackend.IncrementalFlag);
 
   // Link to already-compiled main units (compiled by 'compile' goal)
   AppendFlag(Result, TUtils.GetCompilerBackend.UnitPathFlag(
