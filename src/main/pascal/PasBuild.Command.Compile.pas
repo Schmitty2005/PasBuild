@@ -330,11 +330,15 @@ begin
     end;
   end;
 
-  // Check if FPC is available
+  // Check the configured compiler responds to a version probe.  Report the
+  // actual executable (which may be a --compiler override like ppcx64), not a
+  // hardcoded 'fpc' — the old message misled users who passed --compiler.
   if not TUtils.IsFPCAvailable then
   begin
-    TUtils.LogError('Free Pascal Compiler (fpc) not found in PATH');
-    TUtils.LogError('Please install FPC or add it to your PATH');
+    TUtils.LogError('Compiler not found or not responding: '
+      + TUtils.GetCompilerBackend.Executable);
+    TUtils.LogError('Check the path passed to --compiler, or install the '
+      + 'compiler and add it to your PATH');
     Result := 1;
     Exit;
   end;
