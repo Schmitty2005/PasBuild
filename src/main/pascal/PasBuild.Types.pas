@@ -230,6 +230,7 @@ type
     procedure RegisterModule(AModule: TModuleInfo);
     function FindModuleByName(const AName: string): TModuleInfo;
     function FindModuleByPath(const APath: string): TModuleInfo;
+    function FindModuleByDirName(const ADirName: string): TModuleInfo;
     function GetBuildOrder: TList;
     procedure FilterBuildOrder(var ABuildOrder: TList; const ASelectedModule: string);
     procedure ResolveArtifacts(AModule: TModuleInfo);
@@ -501,6 +502,25 @@ begin
   end;
 end;
 
+function TModuleRegistry.FindModuleByDirName(const ADirName: string): TModuleInfo;
+var
+  I: Integer;
+  Module: TModuleInfo;
+  ModuleDir: string;
+begin
+  Result := nil;
+  for I := 0 to FModules.Count - 1 do
+  begin
+    Module := TModuleInfo(FModules[I]);
+    ModuleDir := ExtractFileName(ExcludeTrailingPathDelimiter(Module.Path));
+    if SameText(ModuleDir, ADirName) then
+    begin
+      Result := Module;
+      Exit;
+    end;
+  end;
+end;
+
 function TModuleRegistry.GetBuildOrder: TList;
 var
   Visited, RecStack: TStringList;
@@ -598,6 +618,7 @@ procedure TModuleRegistry.FilterBuildOrder(var ABuildOrder: TList; const ASelect
 
 var
   SelectedModuleInfo: TModuleInfo;
+  ResolvedName: string;
   Needed: TStringList;
   FilteredOrder: TList;
   Module: TModuleInfo;
@@ -605,10 +626,14 @@ var
 begin
   SelectedModuleInfo := FindModuleByName(ASelectedModule);
   if SelectedModuleInfo = nil then
+    SelectedModuleInfo := FindModuleByDirName(ASelectedModule);
+  if SelectedModuleInfo = nil then
   begin
     ABuildOrder.Clear;
     Exit;
   end;
+
+  ResolvedName := SelectedModuleInfo.Name;
 
   Needed := TStringList.Create;
   try
@@ -620,7 +645,7 @@ begin
        (SelectedModuleInfo.Config.BuildConfig.ProjectType = ptPom) then
     begin
       { Add the aggregator itself (will be skipped at build time, but shown in summary) }
-      Needed.Add(ASelectedModule);
+      Needed.Add(ResolvedName);
 
       { Find all modules whose path is under this aggregator's path }
       for I := 0 to FModules.Count - 1 do
@@ -633,7 +658,7 @@ begin
     end
     else
       { Non-aggregator: just collect the module and its transitive dependencies }
-      CollectTransitiveDeps(ASelectedModule, Needed);
+      CollectTransitiveDeps(ResolvedName, Needed);
 
     { Filter build order to only include needed modules, preserving topological order }
     FilteredOrder := TList.Create;

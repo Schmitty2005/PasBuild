@@ -30,7 +30,8 @@ uses
   PasBuild.Test.Plugin,
   PasBuild.Test.Bootstrap,
   PasBuild.Test.ProcessResources,
-  PasBuild.Test.Command.SourcePackage;
+  PasBuild.Test.Command.SourcePackage,
+  PasBuild.Test.FindProjectRoot;
 
 var
   Application: TTestRunner;

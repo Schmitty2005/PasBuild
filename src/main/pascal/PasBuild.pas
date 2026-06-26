@@ -145,6 +145,24 @@ begin
     end;
   end;
 
+  // If we appear to be inside a child module directory, walk up to find the
+  // aggregator project root (Maven-style auto-detection).
+  if Args.Goal <> bgInit then
+  begin
+    ProjectDir := TConfigLoader.FindProjectRoot(GetCurrentDir);
+    if ProjectDir <> '' then
+    begin
+      TUtils.LogInfo('Detected module directory — changing to project root: ' +
+        ExcludeTrailingPathDelimiter(ProjectDir));
+      if not SetCurrentDir(ProjectDir) then
+      begin
+        TUtils.LogError('Cannot change to project root: ' + ProjectDir);
+        ExitCode := 1;
+        Exit;
+      end;
+    end;
+  end;
+
   // Load project configuration (skip for init goal)
   if Args.Goal = bgInit then
   begin

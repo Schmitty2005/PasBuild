@@ -45,6 +45,7 @@ type
       AAllowEmptyVersion: Boolean = False): TProjectConfig;
     class function ValidateConfig(AConfig: TProjectConfig): Boolean;
     class function ValidateSemanticVersion(const AVersion: string): Boolean;
+    class function FindProjectRoot(const AStartDir: string): string;
   end;
 
 implementation
@@ -464,7 +465,8 @@ begin
 
       Result.Version := GetNodeText(RootNode, 'version');
       if (Result.Version = '') and (not AAllowEmptyVersion) then
-        raise EProjectConfigError.Create('Missing required field: <version>');
+        raise EProjectConfigError.Create('Missing required field: <version>. ' +
+          'If this is a child module, run pasbuild from the project root directory instead');
 
       // Parse optional metadata (defaults already set in TProjectConfig.Create)
       Result.Author := GetNodeText(RootNode, 'author', 'Unknown');
@@ -621,6 +623,56 @@ begin
         // Module dependencies are allowed for applications (optional)
       end;
   end;
+end;
+
+class function TConfigLoader.FindProjectRoot(const AStartDir: string): string;
+var
+  Dir, ParentDir, ProjectFile: string;
+  Doc: TXMLDocument;
+  RootNode, BuildNode, PackagingNode: TDOMNode;
+  Packaging: string;
+begin
+  Result := '';
+  Dir := ExcludeTrailingPathDelimiter(ExpandFileName(AStartDir));
+
+  if not DirectoryExists(Dir) then
+    Exit;
+
+  repeat
+    ParentDir := ExcludeTrailingPathDelimiter(ExtractFilePath(Dir));
+    if ParentDir = Dir then
+      Break;
+    Dir := ParentDir;
+
+    ProjectFile := IncludeTrailingPathDelimiter(Dir) + 'project.xml';
+    if not FileExists(ProjectFile) then
+      Continue;
+
+    try
+      ReadXMLFile(Doc, ProjectFile);
+      try
+        RootNode := Doc.DocumentElement;
+        if (RootNode = nil) or (RootNode.NodeName <> 'project') then
+          Continue;
+
+        Packaging := '';
+        BuildNode := RootNode.FindNode('build');
+        if Assigned(BuildNode) then
+        begin
+          PackagingNode := BuildNode.FindNode('packaging');
+          if Assigned(PackagingNode) then
+            Packaging := Trim(PackagingNode.TextContent);
+        end;
+
+        if SameText(Packaging, 'pom') then
+          Result := Dir;
+      finally
+        Doc.Free;
+      end;
+    except
+      // Malformed XML — skip this directory
+    end;
+  until False;
 end;
 
 end.

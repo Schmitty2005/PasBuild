@@ -129,10 +129,26 @@ begin
 end;
 
 procedure TReactorCommand.FilterBuildOrderForSelectedModule(var BuildOrder: TList);
+var
+  I: Integer;
+  Names: string;
+  Module: TModuleInfo;
 begin
   FRegistry.FilterBuildOrder(BuildOrder, FSelectedModule);
   if BuildOrder.Count = 0 then
+  begin
+    Names := '';
+    for I := 0 to FRegistry.Modules.Count - 1 do
+    begin
+      Module := TModuleInfo(FRegistry.Modules[I]);
+      if Names <> '' then
+        Names := Names + ', ';
+      Names := Names + Module.Name;
+    end;
     TUtils.LogError('Module not found: ' + FSelectedModule);
+    TUtils.LogError('Available modules: ' + Names);
+    TUtils.LogError('Hint: -m expects a module name (from <name> in project.xml), not a directory path');
+  end;
 end;
 
 function TReactorCommand.Execute: Integer;
