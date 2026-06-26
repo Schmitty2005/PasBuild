@@ -63,7 +63,7 @@ begin
   TUtils.QuietMode := Args.Goal = bgResolve;
 
   if not TUtils.QuietMode then
-    TUtils.LogInfo('PasBuild ' + PASBUILD_VERSION + ' — Born ' + PASBUILD_BUILD_DATE + '. Raised by Graeme Geldenhuys.');
+    TUtils.LogInfo('PasBuild ' + PASBUILD_VERSION + ' - Born ' + PASBUILD_BUILD_DATE + '. Raised by Graeme Geldenhuys.');
 
 
   // Resolve compiler executable and instantiate backend via factory.
@@ -152,7 +152,7 @@ begin
     ProjectDir := TConfigLoader.FindProjectRoot(GetCurrentDir);
     if ProjectDir <> '' then
     begin
-      TUtils.LogInfo('Detected module directory — changing to project root: ' +
+      TUtils.LogInfo('Detected module directory - changing to project root: ' +
         ExcludeTrailingPathDelimiter(ProjectDir));
       if not SetCurrentDir(ProjectDir) then
       begin
